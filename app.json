@@ -37,7 +37,13 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "DOLX uses your location to show jobs near you and their distance."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

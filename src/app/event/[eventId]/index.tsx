@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
+    Linking,
     SafeAreaView,
     ScrollView,
     StatusBar,
@@ -12,7 +13,7 @@ import {
     View
 } from 'react-native';
 import { useEventStore } from '../../../stores/eventStore';
-import { Job } from '../../../types';
+import { Event, Job } from '../../../types';
 
 // ─── Helpers ───
 
@@ -40,6 +41,15 @@ function formatShiftTime(dateStr: string): string {
   } catch {
     return dateStr;
   }
+}
+
+function getDirectionsUrl(location: Event['location']): string {
+  if (location.coordinates?.coordinates) {
+    const [lng, lat] = location.coordinates.coordinates;
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+  const address = [location.address, location.city, location.state].filter(Boolean).join(', ');
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
 }
 
 function getStatusColor(status: string): string {
@@ -320,6 +330,15 @@ export default function EventDetailScreen() {
                 </Text>
               </View>
             ) : null}
+            {currentEvent.location?.city ? (
+              <TouchableOpacity
+                style={styles.directionsButton}
+                onPress={() => Linking.openURL(getDirectionsUrl(currentEvent.location))}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.directionsButtonText}>Get Directions</Text>
+              </TouchableOpacity>
+            ) : null}
             {currentEvent.description ? (
               <View style={[styles.infoRow, { marginTop: 4 }]}>
                 <Text style={styles.infoIcon}>📝</Text>
@@ -460,6 +479,16 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   infoIcon: { fontSize: 14, marginTop: 1 },
   infoLabel: { fontSize: 13, color: '#9CA3AF', flex: 1 },
+  directionsButton: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    marginLeft: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#1C2340',
+  },
+  directionsButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
 
   /* Section */
   sectionHeader: { marginBottom: 12 },

@@ -1,6 +1,8 @@
+import AddressAutocomplete from '@/components/AddressAutocomplete';
+import { PlaceDetails } from '@/services/places';
 import api, { isApiError } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
-import { User } from '@/types';
+import { GeoPoint, User } from '@/types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -27,7 +29,7 @@ const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png'];
 interface WorkerProfileData {
   skills: string[];
   experienceLevel: string;
-  location: { city?: string; state?: string };
+  location: { city?: string; state?: string; coordinates?: GeoPoint };
   ratingAvg: number;
   ratingCount: number;
   totalEarnings: number;
@@ -59,6 +61,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
   const [editPhone, setEditPhone] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editState, setEditState] = useState('');
+  const [editCoordinates, setEditCoordinates] = useState<GeoPoint | null>(null);
   const [editCompanyName, setEditCompanyName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -146,6 +149,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
       const wp = workerProfile ?? profileUser?.workerProfile;
       setEditCity(wp?.location?.city ?? '');
       setEditState(wp?.location?.state ?? '');
+      setEditCoordinates(wp?.location?.coordinates ?? null);
     } else {
       setEditCompanyName(profileUser?.organizerProfile?.companyName ?? '');
     }
@@ -157,6 +161,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
     setIsEditing(false);
     setSubmitError(null);
     setSubmitSuccess(false);
+  }, []);
+
+  const handlePlaceSelect = useCallback((details: PlaceDetails) => {
+    setEditCity(details.city);
+    if (details.state) setEditState(details.state);
+    setEditCoordinates({ type: 'Point', coordinates: [details.lng, details.lat] });
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -172,7 +182,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
         ? {
             name: editName,
             phone: editPhone,
-            location: { city: editCity, state: editState },
+            location: {
+              city: editCity,
+              state: editState,
+              ...(editCoordinates ? { coordinates: editCoordinates } : {}),
+            },
           }
         : {
             name: editName,
@@ -197,7 +211,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
 
     setSubmitSuccess(true);
     setIsEditing(false);
-  }, [role, editName, editPhone, editCity, editState, editCompanyName, updateProfile]);
+  }, [role, editName, editPhone, editCity, editState, editCoordinates, editCompanyName, updateProfile]);
 
   // ─── Photo Upload ───
 
@@ -493,21 +507,33 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabel}>Location</Text>
               {isEditing ? (
-                <View style={styles.locationRow}>
-                  <TextInput
-                    style={[styles.input, styles.locationInput]}
-                    value={editCity}
-                    onChangeText={setEditCity}
-                    placeholder="City"
+                <View style={{ flex: 1 }}>
+                  <AddressAutocomplete
+                    onSelect={handlePlaceSelect}
+                    placeholder="Search for your city"
+                    citiesOnly
+                    wrapperStyle={styles.autocompleteWrapper}
+                    inputStyle={styles.autocompleteInput}
+                    dropdownStyle={styles.autocompleteDropdown}
+                    suggestionTextStyle={styles.autocompleteSuggestionText}
                     placeholderTextColor="#999"
                   />
-                  <TextInput
-                    style={[styles.input, styles.locationInput]}
-                    value={editState}
-                    onChangeText={setEditState}
-                    placeholder="State"
-                    placeholderTextColor="#999"
-                  />
+                  <View style={styles.locationRow}>
+                    <TextInput
+                      style={[styles.input, styles.locationInput]}
+                      value={editCity}
+                      onChangeText={setEditCity}
+                      placeholder="City"
+                      placeholderTextColor="#999"
+                    />
+                    <TextInput
+                      style={[styles.input, styles.locationInput]}
+                      value={editState}
+                      onChangeText={setEditState}
+                      placeholder="State"
+                      placeholderTextColor="#999"
+                    />
+                  </View>
                 </View>
               ) : (
                 <Text style={styles.fieldValue}>
@@ -755,6 +781,21 @@ const styles = StyleSheet.create({
   },
   locationInput: {
     flex: 1,
+  },
+  autocompleteWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DDD',
+    marginBottom: 8,
+  },
+  autocompleteInput: {
+    color: '#222222',
+  },
+  autocompleteDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DDD',
+  },
+  autocompleteSuggestionText: {
+    color: '#222222',
   },
 
   // Submit Button

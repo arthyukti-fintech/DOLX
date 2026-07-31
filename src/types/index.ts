@@ -38,6 +38,12 @@ export type PayType = 'fixed' | 'hourly';
 
 // ─── Core Models ───
 
+// Mirrors the backend's GeoJSON Point storage - coordinates are [longitude, latitude]
+export interface GeoPoint {
+  type: 'Point';
+  coordinates: [number, number];
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -48,7 +54,7 @@ export interface User {
   workerProfile?: {
     skills: JobRole[];
     experienceLevel: 'Beginner' | 'Intermediate' | 'Expert';
-    location: { city?: string; state?: string };
+    location: { city?: string; state?: string; coordinates?: GeoPoint };
     ratingAvg: number;
     ratingCount: number;
     totalEarnings: number;
@@ -74,6 +80,7 @@ export interface Job {
   shiftEnd: string;
   status: JobStatus;
   createdAt: string;
+  distanceKm?: number; // present only when browsing with lat/lng (proximity search)
 }
 
 export interface Event {
@@ -85,7 +92,7 @@ export interface Event {
   date: string;
   startTime?: string;
   endTime?: string;
-  location: { address?: string; city: string; state?: string; pincode?: string };
+  location: { address?: string; city: string; state?: string; pincode?: string; coordinates: GeoPoint };
   status: EventStatus;
   createdAt: string;
 }
@@ -176,7 +183,7 @@ export interface CreateEventRequest {
   date: string;
   startTime?: string;
   endTime?: string;
-  location: { address?: string; city: string; state?: string; pincode?: string };
+  location: { address?: string; city: string; state?: string; pincode?: string; coordinates: GeoPoint };
 }
 
 export interface CreateJobRequest {

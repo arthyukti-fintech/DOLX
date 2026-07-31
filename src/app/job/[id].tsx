@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Linking,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -42,6 +43,15 @@ function getEventData(job: Job): Event | null {
     return job.event as Event;
   }
   return null;
+}
+
+function getDirectionsUrl(location: Event['location']): string {
+  if (location.coordinates?.coordinates) {
+    const [lng, lat] = location.coordinates.coordinates;
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+  const address = [location.address, location.city, location.state].filter(Boolean).join(', ');
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
 }
 
 // ─── Component ───
@@ -292,6 +302,13 @@ export default function JobDetailScreen() {
                   .join(', ')}
               </Text>
             </View>
+
+            <Pressable
+              style={styles.directionsButton}
+              onPress={() => Linking.openURL(getDirectionsUrl(event.location))}
+            >
+              <Text style={styles.directionsButtonText}>Get Directions</Text>
+            </Pressable>
           </View>
         )}
 
@@ -412,6 +429,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1.5,
     textAlign: 'right',
+  },
+  directionsButton: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#1a1a2e',
+  },
+  directionsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   applySection: {
     marginTop: 8,

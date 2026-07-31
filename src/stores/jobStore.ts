@@ -12,6 +12,9 @@ interface JobFilters {
   role?: string;
   city?: string;
   eventType?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
 }
 
 interface JobState {
@@ -24,7 +27,9 @@ interface JobState {
   filters: JobFilters;
   fetchJobs: (reset?: boolean) => Promise<void>;
   fetchJobById: (id: string) => Promise<void>;
-  setFilter: (key: keyof JobFilters, value: string | undefined) => void;
+  setFilter: (key: keyof JobFilters, value: string | number | undefined) => void;
+  setLocationFilter: (lat: number, lng: number, radiusKm: number) => void;
+  clearLocationFilter: () => void;
   clearFilters: () => void;
 }
 
@@ -59,8 +64,16 @@ export const useJobStore = create<JobState>((set, get) => ({
     };
 
     if (state.filters.role) params.role = state.filters.role;
-    if (state.filters.city) params.city = state.filters.city;
     if (state.filters.eventType) params.eventType = state.filters.eventType;
+
+    // Proximity search takes priority over the plain city filter when both are present
+    if (state.filters.lat !== undefined && state.filters.lng !== undefined) {
+      params.lat = state.filters.lat;
+      params.lng = state.filters.lng;
+      params.radiusKm = state.filters.radiusKm;
+    } else if (state.filters.city) {
+      params.city = state.filters.city;
+    }
 
     const result = await api.get<{ jobs: Job[] }>('/api/jobs', params);
 
@@ -116,7 +129,7 @@ export const useJobStore = create<JobState>((set, get) => ({
     set({ currentJob: result.data.job, isLoading: false, error: null });
   },
 
-  setFilter: (key: keyof JobFilters, value: string | undefined): void => {
+  setFilter: (key: keyof JobFilters, value: string | number | undefined): void => {
     const state = get();
     const newFilters = { ...state.filters, [key]: value };
 
@@ -130,6 +143,24 @@ export const useJobStore = create<JobState>((set, get) => ({
     // Trigger re-fetch from page 1
     // Reset state before fetching to avoid stale data
     set({ jobs: [], page: 1, hasMore: true });
+    get().fetchJobs(true);
+  },
+
+  setLocationFilter: (lat: number, lng: number, radiusKm: number): void => {
+    const state = get();
+    set({
+      filters: { ...state.filters, lat, lng, radiusKm },
+      jobs: [],
+      page: 1,
+      hasMore: true,
+    });
+    get().fetchJobs(true);
+  },
+
+  clearLocationFilter: (): void => {
+    const state = get();
+    const { lat, lng, radiusKm, ...rest } = state.filters;
+    set({ filters: rest, jobs: [], page: 1, hasMore: true });
     get().fetchJobs(true);
   },
 

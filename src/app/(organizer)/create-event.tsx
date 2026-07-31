@@ -14,11 +14,14 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import AddressAutocomplete from '../../components/AddressAutocomplete';
 import api, { isApiError } from '../../services/api';
+import { PlaceDetails } from '../../services/places';
 import { useEventStore } from '../../stores/eventStore';
 import {
     CreateJobRequest,
     EventCategory,
+    GeoPoint,
     Job,
     JobRole,
     PayType,
@@ -84,6 +87,7 @@ export default function CreateEventScreen() {
   const [address, setAddress] = useState('');
   const [stateName, setStateName] = useState('');
   const [pincode, setPincode] = useState('');
+  const [coordinates, setCoordinates] = useState<GeoPoint | null>(null);
   const [description, setDescription] = useState('');
   const [eventErrors, setEventErrors] = useState<FieldErrors>({});
   const [eventApiError, setEventApiError] = useState('');
@@ -112,6 +116,7 @@ export default function CreateEventScreen() {
     if (!category) errors.category = 'Category is required';
     if (!date.trim()) errors.date = 'Date is required';
     if (!city.trim()) errors.city = 'City is required';
+    if (!coordinates) errors.coordinates = 'Search for the address above so we can pin its location';
     setEventErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -134,6 +139,7 @@ export default function CreateEventScreen() {
         address: address.trim() || undefined,
         state: stateName.trim() || undefined,
         pincode: pincode.trim() || undefined,
+        coordinates: coordinates as GeoPoint,
       },
     });
 
@@ -252,6 +258,16 @@ export default function CreateEventScreen() {
         return next;
       });
     }
+  };
+
+  const handlePlaceSelect = (details: PlaceDetails) => {
+    setCity(details.city);
+    setAddress(details.address);
+    if (details.state) setStateName(details.state);
+    if (details.pincode) setPincode(details.pincode);
+    setCoordinates({ type: 'Point', coordinates: [details.lng, details.lat] });
+    clearEventError('city');
+    clearEventError('coordinates');
   };
 
   const clearJobError = (field: string) => {
@@ -373,6 +389,15 @@ export default function CreateEventScreen() {
         </View>
         {eventErrors.date ? (
           <Text style={styles.errorText}>{eventErrors.date}</Text>
+        ) : null}
+      </View>
+
+      {/* Search - fills city/address/state/pincode below in one shot */}
+      <View style={styles.fieldContainer}>
+        <Text style={styles.fieldLabel}>Search Address</Text>
+        <AddressAutocomplete onSelect={handlePlaceSelect} placeholder="Search for the venue address" />
+        {eventErrors.coordinates ? (
+          <Text style={styles.errorText}>{eventErrors.coordinates}</Text>
         ) : null}
       </View>
 

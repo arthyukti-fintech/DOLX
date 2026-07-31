@@ -1,5 +1,7 @@
 import { useDebounce } from '@/hooks/useDebounce';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useWorkerLocation } from '@/hooks/useWorkerLocation';
+import { useAuthStore } from '@/stores/authStore';
 import { useJobStore } from '@/stores/jobStore';
 import { Event, Job, JobRole } from '@/types';
 import { useRouter } from 'expo-router';
@@ -88,6 +90,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onPress }) => {
           {formatTime(job.shiftStart)} – {formatTime(job.shiftEnd)}
         </Text>
       </View>
+
+      {job.distanceKm !== undefined ? (
+        <Text style={cardStyles.distance}>📍 {job.distanceKm} km away</Text>
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -141,15 +147,27 @@ const cardStyles = StyleSheet.create({
     fontSize: 12,
     color: '#444444',
   },
+  distance: {
+    fontSize: 12,
+    color: '#1B2547',
+    fontWeight: '600',
+    marginTop: 8,
+  },
 });
 
 // ─── Header Component ───
+
+const RADIUS_OPTIONS_KM = [5, 10, 25, 50, 100];
 
 interface JobsHeaderProps {
   selectedRole: string | undefined;
   onSelectRole: (role: string | undefined) => void;
   searchText: string;
   onSearchChange: (text: string) => void;
+  locationStatus: 'loading' | 'granted' | 'denied';
+  radiusKm: number;
+  onSelectRadius: (km: number) => void;
+  onRetryLocation: () => void;
 }
 
 const JobsHeader: React.FC<JobsHeaderProps> = ({
@@ -157,6 +175,10 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
   onSelectRole,
   searchText,
   onSearchChange,
+  locationStatus,
+  radiusKm,
+  onSelectRadius,
+  onRetryLocation,
 }) => {
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
 
@@ -176,6 +198,32 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
           autoCorrect={false}
         />
       </View>
+
+      {/* Location / distance */}
+      {locationStatus === 'granted' ? (
+        <View style={headerStyles.radiusRow}>
+          <Text style={headerStyles.radiusLabel}>Within</Text>
+          {RADIUS_OPTIONS_KM.map((km) => (
+            <TouchableOpacity
+              key={km}
+              style={[headerStyles.radiusChip, radiusKm === km && headerStyles.radiusChipActive]}
+              onPress={() => onSelectRadius(km)}
+              activeOpacity={0.7}
+            >
+              <Text style={[headerStyles.radiusChipText, radiusKm === km && headerStyles.radiusChipTextActive]}>
+                {km}km
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : locationStatus === 'denied' ? (
+        <TouchableOpacity style={headerStyles.locationBanner} onPress={onRetryLocation} activeOpacity={0.7}>
+          <Text style={headerStyles.locationBannerText}>
+            📍 Enable location to see jobs sorted by distance
+          </Text>
+          <Text style={headerStyles.locationBannerAction}>Enable</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* Role Filter */}
       <View style={headerStyles.filterRow}>
@@ -260,6 +308,57 @@ const headerStyles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
   },
+  radiusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+    gap: 6,
+  },
+  radiusLabel: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    marginRight: 2,
+  },
+  radiusChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  radiusChipActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  radiusChipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  radiusChipTextActive: {
+    color: '#1B2547',
+  },
+  locationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  locationBannerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  locationBannerAction: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -329,6 +428,8 @@ const headerStyles = StyleSheet.create({
 
 // ─── Main Screen ───
 
+const DEFAULT_RADIUS_KM = 25;
+
 const JobBrowserScreen: React.FC = () => {
   const router = useRouter();
   const {
@@ -339,10 +440,14 @@ const JobBrowserScreen: React.FC = () => {
     filters,
     fetchJobs,
     setFilter,
+    setLocationFilter,
   } = useJobStore();
+  const profileCity = useAuthStore((s) => s.user?.workerProfile?.location?.city);
+  const { lat, lng, status: locationStatus, refresh: retryLocation } = useWorkerLocation();
 
   const [searchText, setSearchText] = useState('');
   const debouncedSearch = useDebounce(searchText, 300);
+  const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
 
   // Infinite scroll hook
   const { onEndReached, onEndReachedThreshold, isFetchingMore } = useInfiniteScroll({
@@ -351,10 +456,32 @@ const JobBrowserScreen: React.FC = () => {
     isLoading,
   });
 
-  // Initial fetch on mount
+  // Initial fetch on mount - unfiltered, so content shows up immediately rather than
+  // waiting on the location permission prompt (which the user may take a while to answer).
   useEffect(() => {
     fetchJobs(true);
   }, []);
+
+  // Once GPS resolves, switch to a proximity-sorted fetch. If denied, fall back to the
+  // worker's saved profile city instead (still better than an unfiltered list).
+  useEffect(() => {
+    if (locationStatus === 'granted' && lat !== null && lng !== null) {
+      setLocationFilter(lat, lng, radiusKm);
+    } else if (locationStatus === 'denied' && profileCity) {
+      setFilter('city', profileCity);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationStatus, lat, lng]);
+
+  const handleSelectRadius = useCallback(
+    (km: number) => {
+      setRadiusKm(km);
+      if (locationStatus === 'granted' && lat !== null && lng !== null) {
+        setLocationFilter(lat, lng, km);
+      }
+    },
+    [locationStatus, lat, lng, setLocationFilter]
+  );
 
   // Client-side search filtering
   const filteredJobs = useMemo(() => {
@@ -449,6 +576,10 @@ const JobBrowserScreen: React.FC = () => {
           onSelectRole={handleRoleSelect}
           searchText={searchText}
           onSearchChange={setSearchText}
+          locationStatus={locationStatus}
+          radiusKm={radiusKm}
+          onSelectRadius={handleSelectRadius}
+          onRetryLocation={retryLocation}
         />
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>⚠️</Text>
@@ -473,6 +604,10 @@ const JobBrowserScreen: React.FC = () => {
         onSelectRole={handleRoleSelect}
         searchText={searchText}
         onSearchChange={setSearchText}
+        locationStatus={locationStatus}
+        radiusKm={radiusKm}
+        onSelectRadius={handleSelectRadius}
+        onRetryLocation={retryLocation}
       />
 
       {/* Initial loading state */}
