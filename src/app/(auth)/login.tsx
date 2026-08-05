@@ -4,7 +4,6 @@ import {
     ActivityIndicator,
     Dimensions,
     Image,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -13,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/authStore';
 
 const { height: SCREEN_H } = Dimensions.get('window');

@@ -43,6 +43,14 @@
         {
           "locationWhenInUsePermission": "DOLX uses your location to show jobs near you and their distance."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "experiments": {

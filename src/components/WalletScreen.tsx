@@ -5,13 +5,13 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import {
     ActivityIndicator,
     FlatList,
-    SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Constants ───
 
@@ -46,16 +46,27 @@ function getEventOrJobName(payment: Payment): string {
 function getTransactionType(
   payment: Payment,
   userRole: 'worker' | 'organizer' | 'admin'
-): 'credit' | 'debit' {
-  // For organizer: all payments are debits (money paid out)
+): 'credit' | 'debit' | 'pending' {
+  // For organizer: all payments are debits (money paid out), regardless of status
   if (userRole === 'organizer') {
     return 'debit';
   }
-  // For worker: released = credit (received), held = debit (held/pending)
+  // For worker: released = credit (actually received); anything else (held/pending/
+  // refunded/failed) hasn't reached the worker yet, so it's pending, not a debit -
+  // workers never pay out through this flow.
   if (payment.status === 'released') {
     return 'credit';
   }
-  return 'debit';
+  return 'pending';
+}
+
+// The worker's take-home is workerPayout (post-commission), not the gross amount
+// the organizer funded - that gross amount is only what the organizer's side owes.
+function getDisplayAmount(
+  payment: Payment,
+  userRole: 'worker' | 'organizer' | 'admin'
+): number {
+  return userRole === 'organizer' ? payment.amount : payment.workerPayout;
 }
 
 function computeTotal(
@@ -64,10 +75,12 @@ function computeTotal(
 ): number {
   return transactions.reduce((sum, tx) => {
     const type = getTransactionType(tx, userRole);
-    if (type === 'credit') {
-      return sum + tx.amount;
+    // Only realized money movement counts toward the total - pending/held payments
+    // haven't been earned (worker) or charged (organizer) yet.
+    if (type === 'pending') {
+      return sum;
     }
-    return sum + tx.amount;
+    return sum + getDisplayAmount(tx, userRole);
   }, 0);
 }
 
@@ -81,16 +94,20 @@ interface TransactionCardProps {
 const TransactionCard: React.FC<TransactionCardProps> = ({ payment, userRole }) => {
   const type = getTransactionType(payment, userRole);
   const isCredit = type === 'credit';
-  const accentColor = isCredit ? '#35B74B' : '#F44336';
-  const iconBg = isCredit ? '#DFF4E2' : '#FCE2E2';
+  const isPending = type === 'pending';
+  const accentColor = isCredit ? '#35B74B' : isPending ? '#B8860B' : '#F44336';
+  const iconBg = isCredit ? '#DFF4E2' : isPending ? '#FDF3DC' : '#FCE2E2';
   const title = getEventOrJobName(payment);
   const dateTime = formatDateTime(payment.createdAt);
+  const amount = getDisplayAmount(payment, userRole);
+  const sign = isCredit ? '+' : isPending ? '' : '-';
+  const badgeLabel = isCredit ? 'Credit' : isPending ? 'Pending' : 'Debit';
 
   return (
     <View style={cardStyles.card}>
       <View style={[cardStyles.iconContainer, { backgroundColor: iconBg }]}>
         <Text style={[cardStyles.arrow, { color: accentColor }]}>
-          {isCredit ? '↓' : '↑'}
+          {isCredit ? '↓' : isPending ? '⏳' : '↑'}
         </Text>
       </View>
 
@@ -102,15 +119,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ payment, userRole }) 
           <Text style={cardStyles.metaIcon}>🕐</Text>
           <Text style={cardStyles.metaText}>{dateTime}</Text>
           <View style={cardStyles.badge}>
-            <Text style={cardStyles.badgeText}>
-              {isCredit ? 'Credit' : 'Debit'}
-            </Text>
+            <Text style={cardStyles.badgeText}>{badgeLabel}</Text>
           </View>
         </View>
       </View>
 
       <Text style={[cardStyles.amount, { color: accentColor }]}>
-        {isCredit ? '+' : '-'}₹{formatAmount(payment.amount)}
+        {sign}₹{formatAmount(amount)}
       </Text>
     </View>
   );

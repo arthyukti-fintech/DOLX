@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/authStore';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 /**
  * Role Selection screen.

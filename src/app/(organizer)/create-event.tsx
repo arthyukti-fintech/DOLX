@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -5,7 +6,6 @@ import {
     FlatList,
     KeyboardAvoidingView,
     Platform,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AddressAutocomplete from '../../components/AddressAutocomplete';
 import api, { isApiError } from '../../services/api';
 import { PlaceDetails } from '../../services/places';
@@ -83,11 +84,14 @@ export default function CreateEventScreen() {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<EventCategory | ''>('');
   const [date, setDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [stateName, setStateName] = useState('');
   const [pincode, setPincode] = useState('');
   const [coordinates, setCoordinates] = useState<GeoPoint | null>(null);
+  const [locatingCurrentPosition, setLocatingCurrentPosition] = useState(false);
   const [description, setDescription] = useState('');
   const [eventErrors, setEventErrors] = useState<FieldErrors>({});
   const [eventApiError, setEventApiError] = useState('');
@@ -115,11 +119,25 @@ export default function CreateEventScreen() {
     if (!title.trim()) errors.title = 'Title is required';
     if (!category) errors.category = 'Category is required';
     if (!date.trim()) errors.date = 'Date is required';
+    if (!startTime.trim()) errors.startTime = 'Start time is required';
+    if (!endTime.trim()) errors.endTime = 'End time is required';
     if (!city.trim()) errors.city = 'City is required';
+    if (!address.trim()) errors.address = 'Address is required';
     if (!coordinates) errors.coordinates = 'Search for the address above so we can pin its location';
     setEventErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  // Maps this screen's local error keys to the flat/dotted keys the backend returns
+  // (e.g. backend sends "location.address", this form tracks it as "address").
+  const FIELD_ERROR_ALIASES: Record<string, string> = {
+    'location.address': 'address',
+    'location.city': 'city',
+    'location.coordinates.coordinates': 'coordinates',
+  };
+  const KNOWN_EVENT_ERROR_KEYS = new Set([
+    'title', 'category', 'date', 'startTime', 'endTime', 'city', 'address', 'coordinates',
+  ]);
 
   // ─── Step 1: Submit Event ───
 
@@ -133,10 +151,12 @@ export default function CreateEventScreen() {
       title: title.trim(),
       eventType: category as EventCategory,
       date: date.trim(),
+      startTime: startTime.trim(),
+      endTime: endTime.trim(),
       description: description.trim() || undefined,
       location: {
         city: city.trim(),
-        address: address.trim() || undefined,
+        address: address.trim(),
         state: stateName.trim() || undefined,
         pincode: pincode.trim() || undefined,
         coordinates: coordinates as GeoPoint,
@@ -148,12 +168,23 @@ export default function CreateEventScreen() {
     if (typeof result === 'string') {
       setEventId(result);
       setStep(2);
+    } else if (result.fieldErrors) {
+      // Remap to local keys where we have a matching field, and surface anything
+      // unrecognized as a visible banner instead of letting it fail silently.
+      const mapped: FieldErrors = {};
+      const unmapped: string[] = [];
+      Object.entries(result.fieldErrors).forEach(([key, msg]) => {
+        const localKey = FIELD_ERROR_ALIASES[key] ?? key;
+        if (KNOWN_EVENT_ERROR_KEYS.has(localKey)) {
+          mapped[localKey] = msg;
+        } else {
+          unmapped.push(msg);
+        }
+      });
+      setEventErrors(mapped);
+      if (unmapped.length) setEventApiError(unmapped.join(' '));
     } else {
-      if (result.fieldErrors) {
-        setEventErrors(result.fieldErrors);
-      } else {
-        setEventApiError(result.message);
-      }
+      setEventApiError(result.message);
     }
   };
 
@@ -267,7 +298,45 @@ export default function CreateEventScreen() {
     if (details.pincode) setPincode(details.pincode);
     setCoordinates({ type: 'Point', coordinates: [details.lng, details.lat] });
     clearEventError('city');
+    clearEventError('address');
     clearEventError('coordinates');
+  };
+
+  // Fallback that doesn't require the Places API key - uses on-device GPS + reverse
+  // geocoding (built into expo-location) to fill in the same fields as a place selection.
+  const handleUseCurrentLocation = async () => {
+    setLocatingCurrentPosition(true);
+    setEventApiError('');
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setEventApiError('Location permission denied. Enter the address manually instead.');
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = position.coords;
+
+      const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (place?.city) setCity(place.city);
+      if (place?.region) setStateName(place.region);
+      if (place?.postalCode) setPincode(place.postalCode);
+
+      // Street-level detail isn't always available from GPS reverse geocoding - fall back
+      // to whatever's available so the required Address field never ends up empty.
+      const addressLine = [place?.streetNumber, place?.street].filter(Boolean).join(' ');
+      const fallbackAddress = [place?.name, place?.district, place?.city].filter(Boolean).join(', ');
+      setAddress(addressLine || fallbackAddress || 'Current location');
+
+      setCoordinates({ type: 'Point', coordinates: [longitude, latitude] });
+      clearEventError('city');
+      clearEventError('address');
+      clearEventError('coordinates');
+    } catch {
+      setEventApiError('Could not get your current location. Enter the address manually instead.');
+    } finally {
+      setLocatingCurrentPosition(false);
+    }
   };
 
   const clearJobError = (field: string) => {
@@ -392,10 +461,58 @@ export default function CreateEventScreen() {
         ) : null}
       </View>
 
+      {/* Start / End Time */}
+      <View style={styles.rowFields}>
+        <View style={[styles.fieldContainer, { flex: 1, marginRight: 8 }]}>
+          <Text style={styles.fieldLabel}>Start Time</Text>
+          <View style={[styles.inputWrapper, eventErrors.startTime && styles.inputError]}>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 10:00 AM"
+              placeholderTextColor="#6B7280"
+              value={startTime}
+              onChangeText={(text) => { setStartTime(text); clearEventError('startTime'); }}
+              editable={!eventLoading}
+            />
+          </View>
+          {eventErrors.startTime ? (
+            <Text style={styles.errorText}>{eventErrors.startTime}</Text>
+          ) : null}
+        </View>
+        <View style={[styles.fieldContainer, { flex: 1, marginLeft: 8 }]}>
+          <Text style={styles.fieldLabel}>End Time</Text>
+          <View style={[styles.inputWrapper, eventErrors.endTime && styles.inputError]}>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 6:00 PM"
+              placeholderTextColor="#6B7280"
+              value={endTime}
+              onChangeText={(text) => { setEndTime(text); clearEventError('endTime'); }}
+              editable={!eventLoading}
+            />
+          </View>
+          {eventErrors.endTime ? (
+            <Text style={styles.errorText}>{eventErrors.endTime}</Text>
+          ) : null}
+        </View>
+      </View>
+
       {/* Search - fills city/address/state/pincode below in one shot */}
       <View style={styles.fieldContainer}>
         <Text style={styles.fieldLabel}>Search Address</Text>
         <AddressAutocomplete onSelect={handlePlaceSelect} placeholder="Search for the venue address" />
+        <TouchableOpacity
+          style={styles.useLocationButton}
+          onPress={handleUseCurrentLocation}
+          activeOpacity={0.7}
+          disabled={locatingCurrentPosition}
+        >
+          {locatingCurrentPosition ? (
+            <ActivityIndicator size="small" color="#A5B4FC" />
+          ) : (
+            <Text style={styles.useLocationButtonText}>📍 Use my current location</Text>
+          )}
+        </TouchableOpacity>
         {eventErrors.coordinates ? (
           <Text style={styles.errorText}>{eventErrors.coordinates}</Text>
         ) : null}
@@ -421,17 +538,20 @@ export default function CreateEventScreen() {
 
       {/* Address */}
       <View style={styles.fieldContainer}>
-        <Text style={styles.fieldLabel}>Address (optional)</Text>
-        <View style={styles.inputWrapper}>
+        <Text style={styles.fieldLabel}>Address *</Text>
+        <View style={[styles.inputWrapper, eventErrors.address && styles.inputError]}>
           <TextInput
             style={styles.input}
             placeholder="e.g. 123 Event Hall, Main Road"
             placeholderTextColor="#6B7280"
             value={address}
-            onChangeText={setAddress}
+            onChangeText={(text) => { setAddress(text); clearEventError('address'); }}
             editable={!eventLoading}
           />
         </View>
+        {eventErrors.address ? (
+          <Text style={styles.errorText}>{eventErrors.address}</Text>
+        ) : null}
       </View>
 
       {/* State & Pincode */}
@@ -807,6 +927,8 @@ const styles = StyleSheet.create({
   inputError: { borderColor: '#EF4444' },
   input: { flex: 1, fontSize: 14, color: '#FFFFFF' },
   errorText: { fontSize: 12, color: '#EF4444', marginTop: 4, marginLeft: 4 },
+  useLocationButton: { alignSelf: 'flex-start', marginTop: 8, paddingVertical: 4 },
+  useLocationButtonText: { fontSize: 13, color: '#A5B4FC', fontWeight: '600' },
 
   /* Chips */
   chipRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },

@@ -2,6 +2,7 @@ import { Slot } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 
 export default function RootLayout() {
@@ -20,9 +21,11 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <Slot />
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={styles.root}>
+        <Slot />
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 

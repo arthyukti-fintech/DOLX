@@ -4,7 +4,6 @@ import {
     ActivityIndicator,
     FlatList,
     Linking,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -12,6 +11,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEventStore } from '../../../stores/eventStore';
 import { Event, Job } from '../../../types';
 
@@ -143,7 +143,11 @@ export default function EventDetailScreen() {
     const isFilled = item.filledCount >= item.numberOfWorkers;
 
     return (
-      <View style={styles.jobCard}>
+      <TouchableOpacity
+        style={styles.jobCard}
+        activeOpacity={0.7}
+        onPress={() => router.push(`/event/${eventId}/job/${item._id}/applicants`)}
+      >
         <View style={styles.jobCardHeader}>
           <Text style={styles.jobRole} numberOfLines={1}>
             {item.role}
@@ -196,7 +200,7 @@ export default function EventDetailScreen() {
             </Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

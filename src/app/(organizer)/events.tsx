@@ -3,13 +3,13 @@ import { useCallback, useEffect } from 'react';
 import {
     ActivityIndicator,
     FlatList,
-    SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEventStore } from '../../stores/eventStore';
 import { Event, EventStatus } from '../../types';
 

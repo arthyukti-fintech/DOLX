@@ -3,12 +3,12 @@ import { PlaceDetails } from '@/services/places';
 import api, { isApiError } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
 import { GeoPoint, User } from '@/types';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
     Platform,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -17,6 +17,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Constants ───
 
@@ -608,9 +609,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
         {!isEditing && (
           <TouchableOpacity
             style={styles.logoutButton}
-            onPress={() => {
+            onPress={async () => {
               const { logout } = useAuthStore.getState();
-              logout();
+              await logout();
+              router.replace('/(auth)/login');
             }}
             activeOpacity={0.7}
           >

@@ -9,8 +9,8 @@ import {
     Text,
     View,
 } from 'react-native';
-import api from "../../../../../services/api";
-import { Application, ApplicationStatus, Job, User } from '../../../../types';
+import api, { isApiError } from "../../../../../services/api";
+import { Application, ApplicationStatus, Job, User } from '../../../../../types';
 
 // ─── Types ───
 
@@ -86,7 +86,7 @@ export default function ApplicantManagerScreen() {
     setJob(jobResult.data.job);
 
     // Fetch applicants
-    const result = await api.get<{ applications: ApplicantData[] }>(
+    const result = await api.get<{ applicants: ApplicantData[] }>(
       `/api/jobs/${jobId}/applicants`
     );
 
@@ -96,7 +96,7 @@ export default function ApplicantManagerScreen() {
       return;
     }
 
-    setApplicants(result.data.applications);
+    setApplicants(result.data.applicants);
     setIsLoading(false);
   }, [jobId]);
 

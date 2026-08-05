@@ -67,7 +67,7 @@ export const useEventStore = create<EventState>((set) => ({
   fetchEventById: async (id: string): Promise<void> => {
     set({ isLoading: true, error: null });
 
-    const result = await api.get<{ event: Event & { jobs: Job[] } }>(
+    const result = await api.get<{ event: Event; jobs: Job[] }>(
       `/api/events/${id}`
     );
 
@@ -76,11 +76,8 @@ export const useEventStore = create<EventState>((set) => ({
       return;
     }
 
-    const eventData = result.data.event;
-    const { jobs, ...eventFields } = eventData;
-
     set({
-      currentEvent: { ...eventFields, jobs: jobs ?? [] },
+      currentEvent: { ...result.data.event, jobs: result.data.jobs ?? [] },
       isLoading: false,
       error: null,
     });
