@@ -12,7 +12,9 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusPill } from '../../../components/ui';
 import { useEventStore } from '../../../stores/eventStore';
+import { colors, fonts, radius, spacing } from '../../../theme';
 import { Event, Job } from '../../../types';
 
 // ─── Helpers ───
@@ -50,44 +52,6 @@ function getDirectionsUrl(location: Event['location']): string {
   }
   const address = [location.address, location.city, location.state].filter(Boolean).join(', ');
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case 'active':
-      return '#22C55E';
-    case 'completed':
-      return '#6366F1';
-    case 'draft':
-      return '#F59E0B';
-    case 'cancelled':
-      return '#EF4444';
-    case 'open':
-      return '#22C55E';
-    case 'closed':
-      return '#9CA3AF';
-    default:
-      return '#9CA3AF';
-  }
-}
-
-function getStatusBg(status: string): string {
-  switch (status) {
-    case 'active':
-      return '#052E16';
-    case 'completed':
-      return '#1E1B4B';
-    case 'draft':
-      return '#451A03';
-    case 'cancelled':
-      return '#450A0A';
-    case 'open':
-      return '#052E16';
-    case 'closed':
-      return '#1C2340';
-    default:
-      return '#1C2340';
-  }
 }
 
 // ─── Component ───
@@ -152,21 +116,7 @@ export default function EventDetailScreen() {
           <Text style={styles.jobRole} numberOfLines={1}>
             {item.role}
           </Text>
-          <View
-            style={[
-              styles.jobStatusBadge,
-              { backgroundColor: getStatusBg(item.status) },
-            ]}
-          >
-            <Text
-              style={[
-                styles.jobStatusText,
-                { color: getStatusColor(item.status) },
-              ]}
-            >
-              {item.status}
-            </Text>
-          </View>
+          <StatusPill status={item.status} />
         </View>
 
         <View style={styles.jobCardBody}>
@@ -209,7 +159,7 @@ export default function EventDetailScreen() {
   if (error && !isLoading && !currentEvent) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -242,7 +192,7 @@ export default function EventDetailScreen() {
   if (isLoading && !currentEvent) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -255,7 +205,7 @@ export default function EventDetailScreen() {
           <View style={{ width: 36 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading event details...</Text>
         </View>
       </SafeAreaView>
@@ -268,7 +218,7 @@ export default function EventDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -293,22 +243,7 @@ export default function EventDetailScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
             <Text style={styles.eventTitle}>{currentEvent.title}</Text>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: getStatusBg(currentEvent.status) },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  { color: getStatusColor(currentEvent.status) },
-                ]}
-              >
-                {currentEvent.status.charAt(0).toUpperCase() +
-                  currentEvent.status.slice(1)}
-              </Text>
-            </View>
+            <StatusPill status={currentEvent.status} />
           </View>
 
           <View style={styles.infoBody}>
@@ -408,204 +343,221 @@ export default function EventDetailScreen() {
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0D0D1A' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
 
   /* Header */
   header: {
-    backgroundColor: '#1B2547',
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A3350',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   backButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1C2340',
-    borderWidth: 1,
-    borderColor: '#2A3350',
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backArrow: { fontSize: 20, color: '#FFFFFF', lineHeight: 24 },
+  backArrow: { fontSize: 18, color: colors.textOnPrimary, lineHeight: 22 },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 17,
+    color: colors.textOnPrimary,
     flex: 1,
     textAlign: 'center',
   },
 
-  /* Scroll content */
+  /* Scroll */
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
     paddingBottom: 40,
   },
 
-  /* Info Card */
+  /* Info card */
   infoCard: {
-    backgroundColor: '#1C2340',
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#2A3350',
-    marginBottom: 20,
+    borderColor: colors.border,
+    marginBottom: spacing.xl,
   },
   infoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 14,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   eventTitle: {
+    fontFamily: fonts.displayBold,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.text,
     flex: 1,
-    marginRight: 10,
   },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  infoBody: { gap: 8 },
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  infoBody: { gap: spacing.sm },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   infoIcon: { fontSize: 14, marginTop: 1 },
-  infoLabel: { fontSize: 13, color: '#9CA3AF', flex: 1 },
+  infoLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+    flex: 1,
+  },
   directionsButton: {
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: spacing.xs,
     marginLeft: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#1C2340',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  directionsButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  directionsButtonText: {
+    fontFamily: fonts.displaySemiBold,
+    color: colors.primary,
+    fontSize: 12,
+  },
 
   /* Section */
-  sectionHeader: { marginBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  sectionHeader: { marginBottom: spacing.md },
+  sectionTitle: {
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 16,
+    color: colors.text,
+  },
 
-  /* Jobs List */
-  jobsList: { gap: 10 },
+  /* Job cards */
+  jobsList: { gap: spacing.md },
   jobCard: {
-    backgroundColor: '#1C2340',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#2A3350',
+    borderColor: colors.border,
+    marginBottom: spacing.md,
   },
   jobCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   jobRole: {
+    fontFamily: fonts.displaySemiBold,
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text,
     flex: 1,
-    marginRight: 8,
   },
-  jobStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  jobStatusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  jobCardBody: { gap: 6 },
+  jobCardBody: { gap: spacing.xs + 2 },
   jobRow: { flexDirection: 'row', alignItems: 'center' },
-  jobLabel: { fontSize: 12, color: '#6B7280', width: 70 },
-  jobValue: { fontSize: 13, color: '#D1D5DB', fontWeight: '500' },
-  jobValueFilled: { color: '#22C55E' },
+  jobLabel: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 12,
+    color: colors.textFaint,
+    width: 72,
+  },
+  jobValue: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.text,
+  },
+  jobValueFilled: { color: colors.success },
 
-  /* Empty Jobs */
+  /* Empty jobs */
   emptyJobs: {
-    backgroundColor: '#1C2340',
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xxl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2A3350',
+    borderColor: colors.border,
   },
-  emptyJobsText: { fontSize: 13, color: '#6B7280' },
+  emptyJobsText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
 
-  /* Complete Button */
+  /* Complete button */
   completeButton: {
-    backgroundColor: '#22C55E',
-    borderRadius: 12,
+    backgroundColor: colors.success,
+    borderRadius: radius.md,
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: spacing.xxl,
   },
   completeButtonText: {
-    color: '#FFFFFF',
+    fontFamily: fonts.displaySemiBold,
+    color: colors.textOnPrimary,
     fontSize: 15,
-    fontWeight: '600',
     letterSpacing: 0.3,
   },
-  buttonDisabled: { opacity: 0.7 },
+  buttonDisabled: { opacity: 0.6 },
 
-  /* Complete Error */
   completeErrorBox: {
-    backgroundColor: '#3B1A1A',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#7F1D1D',
+    backgroundColor: colors.dangerBg,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginTop: spacing.lg,
   },
-  completeErrorText: { fontSize: 13, color: '#FCA5A5' },
+  completeErrorText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 13,
+    color: colors.danger,
+  },
 
-  /* Loading */
+  /* Loading / error */
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
-  loadingText: { fontSize: 14, color: '#9CA3AF' },
-
-  /* Error */
+  loadingText: {
+    fontFamily: fonts.bodyRegular,
+    fontSize: 14,
+    color: colors.textMuted,
+  },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 8,
+    paddingHorizontal: spacing.xxxl,
+    gap: spacing.sm,
   },
-  errorIcon: { fontSize: 40, marginBottom: 8 },
-  errorTitle: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  errorIcon: { fontSize: 40, marginBottom: spacing.sm },
+  errorTitle: {
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 18,
+    color: colors.text,
+  },
   errorMessage: {
+    fontFamily: fonts.bodyRegular,
     fontSize: 13,
-    color: '#9CA3AF',
+    color: colors.textMuted,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   retryButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.xxl + spacing.xs,
+    paddingVertical: spacing.md,
   },
-  retryButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  retryButtonText: {
+    fontFamily: fonts.displaySemiBold,
+    color: colors.textOnPrimary,
+    fontSize: 14,
+  },
 });

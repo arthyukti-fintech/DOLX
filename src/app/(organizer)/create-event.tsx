@@ -15,6 +15,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors } from '../../theme';
 import AddressAutocomplete from '../../components/AddressAutocomplete';
 import api, { isApiError } from '../../services/api';
 import { PlaceDetails } from '../../services/places';
@@ -814,7 +815,7 @@ export default function CreateEventScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D1A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -843,7 +844,7 @@ export default function CreateEventScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: '#0D0D1A' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
 
   /* Header */
   header: {
@@ -857,13 +858,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1C2340',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#2A3350',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backArrow: { fontSize: 20, color: '#FFFFFF', lineHeight: 24 },
+  backArrow: { fontSize: 20, color: colors.textOnPrimary, lineHeight: 24 },
 
   /* Step Indicator */
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -871,10 +872,10 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#2A3350',
+    backgroundColor: colors.border,
   },
-  stepDotActive: { backgroundColor: '#6366F1' },
-  stepLine: { width: 40, height: 2, backgroundColor: '#2A3350' },
+  stepDotActive: { backgroundColor: colors.primary },
+  stepLine: { width: 40, height: 2, backgroundColor: colors.border },
 
   /* Form content */
   formContent: {
@@ -883,34 +884,34 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 40,
   },
-  stepTitle: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
-  stepSubtitle: { fontSize: 13, color: '#9CA3AF', marginBottom: 24 },
+  stepTitle: { fontSize: 24, fontWeight: '700', color: colors.textOnPrimary, marginBottom: 4 },
+  stepSubtitle: { fontSize: 13, color: colors.textMuted, marginBottom: 24 },
 
   /* Error/Success boxes */
   apiErrorBox: {
-    backgroundColor: '#3B1A1A',
+    backgroundColor: colors.dangerBg,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#7F1D1D',
+    borderColor: colors.dangerBg,
   },
-  apiErrorText: { fontSize: 13, color: '#FCA5A5' },
+  apiErrorText: { fontSize: 13, color: colors.danger },
   successBox: {
-    backgroundColor: '#1A3B2A',
+    backgroundColor: colors.successBg,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#166534',
+    borderColor: colors.success,
   },
-  successText: { fontSize: 13, color: '#86EFAC' },
+  successText: { fontSize: 13, color: colors.success },
 
   /* Field containers */
   fieldContainer: { marginBottom: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: '500', color: '#9CA3AF', marginBottom: 8 },
+  fieldLabel: { fontSize: 13, fontWeight: '500', color: colors.textMuted, marginBottom: 8 },
   rowFields: { flexDirection: 'row' },
 
   /* Inputs */
@@ -918,17 +919,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2A3350',
+    borderColor: colors.border,
     borderRadius: 12,
     height: 48,
     paddingHorizontal: 14,
-    backgroundColor: '#1C2340',
+    backgroundColor: colors.card,
   },
-  inputError: { borderColor: '#EF4444' },
-  input: { flex: 1, fontSize: 14, color: '#FFFFFF' },
-  errorText: { fontSize: 12, color: '#EF4444', marginTop: 4, marginLeft: 4 },
+  inputError: { borderColor: colors.danger },
+  input: { flex: 1, fontSize: 14, color: colors.textOnPrimary },
+  errorText: { fontSize: 12, color: colors.danger, marginTop: 4, marginLeft: 4 },
   useLocationButton: { alignSelf: 'flex-start', marginTop: 8, paddingVertical: 4 },
-  useLocationButtonText: { fontSize: 13, color: '#A5B4FC', fontWeight: '600' },
+  useLocationButtonText: { fontSize: 13, color: colors.secondary, fontWeight: '600' },
 
   /* Chips */
   chipRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
@@ -937,12 +938,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2A3350',
-    backgroundColor: '#1C2340',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
-  chipActive: { borderColor: '#6366F1', backgroundColor: '#1E1B4B' },
-  chipText: { fontSize: 12, color: '#9CA3AF', fontWeight: '500' },
-  chipTextActive: { color: '#A5B4FC' },
+  chipActive: { borderColor: colors.primary, backgroundColor: colors.surface },
+  chipText: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+  chipTextActive: { color: colors.secondary },
 
   /* Pay type toggle */
   payTypeRow: { flexDirection: 'row', gap: 12 },
@@ -951,25 +952,25 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2A3350',
-    backgroundColor: '#1C2340',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  payTypeOptionActive: { borderColor: '#6366F1', backgroundColor: '#1E1B4B' },
-  payTypeText: { fontSize: 14, fontWeight: '500', color: '#9CA3AF' },
-  payTypeTextActive: { color: '#A5B4FC' },
+  payTypeOptionActive: { borderColor: colors.primary, backgroundColor: colors.surface },
+  payTypeText: { fontSize: 14, fontWeight: '500', color: colors.textMuted },
+  payTypeTextActive: { color: colors.secondary },
 
   /* Buttons */
   primaryButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
   },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600', letterSpacing: 0.3 },
+  primaryButtonText: { color: colors.textOnPrimary, fontSize: 15, fontWeight: '600', letterSpacing: 0.3 },
   secondaryButton: {
     borderRadius: 12,
     height: 48,
@@ -977,22 +978,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: colors.primary,
     backgroundColor: 'transparent',
   },
-  secondaryButtonText: { color: '#A5B4FC', fontSize: 15, fontWeight: '600' },
+  secondaryButtonText: { color: colors.secondary, fontSize: 15, fontWeight: '600' },
   buttonDisabled: { opacity: 0.7 },
 
   /* Added Jobs section */
   addedJobsSection: { marginBottom: 20 },
-  addedJobsTitle: { fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 10 },
+  addedJobsTitle: { fontSize: 14, fontWeight: '600', color: colors.textOnPrimary, marginBottom: 10 },
   jobCard: {
-    backgroundColor: '#1C2340',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#2A3350',
+    borderColor: colors.border,
   },
   jobCardHeader: {
     flexDirection: 'row',
@@ -1000,8 +1001,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  jobCardRole: { fontSize: 14, fontWeight: '600', color: '#FFFFFF', flex: 1 },
-  jobCardPay: { fontSize: 13, color: '#A5B4FC', fontWeight: '500' },
+  jobCardRole: { fontSize: 14, fontWeight: '600', color: colors.textOnPrimary, flex: 1 },
+  jobCardPay: { fontSize: 13, color: colors.secondary, fontWeight: '500' },
   jobCardDetails: { flexDirection: 'row', gap: 16 },
-  jobCardDetail: { fontSize: 12, color: '#9CA3AF' },
+  jobCardDetail: { fontSize: 12, color: colors.textMuted },
 });

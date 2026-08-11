@@ -1,18 +1,19 @@
 import api, { isApiError } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useServiceStore } from '@/stores/serviceStore';
 import { Job } from '@/types';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Image,
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Card, ImagePlaceholder, StatusPill, Text } from '../../components/ui';
+import { colors, radius, shadow, spacing } from '../../theme';
 
 // ─── Types ───
 
@@ -24,86 +25,79 @@ interface AssignedJob {
   workStatus?: string;
 }
 
-// ─── Skeleton Placeholder ───
+/**
+ * The role taxonomy the platform hires for. Mirrors JOB_ROLES on the backend -
+ * kept as a local constant so the category grid renders instantly rather than
+ * waiting on a round-trip for a list that effectively never changes.
+ */
+const CORE_STAFF: { role: string; glyph: string }[] = [
+  { role: 'Event Helper', glyph: '🙋' },
+  { role: 'Setup / Decoration Crew', glyph: '🎪' },
+  { role: 'Catering Staff', glyph: '🍽️' },
+  { role: 'Photographer', glyph: '📷' },
+  { role: 'Videographer', glyph: '🎥' },
+  { role: 'Brand Promoter', glyph: '📣' },
+  { role: 'Registration Staff', glyph: '📋' },
+  { role: 'Host / Anchor', glyph: '🎤' },
+  { role: 'Security Staff', glyph: '🛡️' },
+  { role: 'Crowd Management', glyph: '👥' },
+];
 
-const SkeletonCard: React.FC<{ wide?: boolean }> = ({ wide }) => (
-  <View style={[styles.skeletonCard, wide && styles.skeletonCardWide]}>
-    <View style={styles.skeletonLine} />
-    <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-    <View style={[styles.skeletonLine, styles.skeletonLineMedium]} />
-  </View>
-);
-
-// ─── Main Screen ───
+// ─── Screen ───
 
 const WorkerHomeScreen: React.FC = () => {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
-  // Assigned jobs state
   const [assignedJobs, setAssignedJobs] = useState<AssignedJob[]>([]);
   const [assignedLoading, setAssignedLoading] = useState(true);
-  const [assignedError, setAssignedError] = useState<string | null>(null);
 
-  // Discovery jobs state
   const [discoveryJobs, setDiscoveryJobs] = useState<Job[]>([]);
   const [discoveryLoading, setDiscoveryLoading] = useState(true);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
-  // ─── Fetch Assigned Jobs ───
-
   const fetchAssignedJobs = useCallback(async () => {
     setAssignedLoading(true);
-    setAssignedError(null);
-
     const result = await api.get<{ applications: AssignedJob[] }>('/api/workers/assigned-jobs');
-
-    if (isApiError(result)) {
-      setAssignedError(result.message);
-      setAssignedLoading(false);
-      return;
+    if (!isApiError(result)) {
+      setAssignedJobs(result.data.applications ?? []);
     }
-
-    setAssignedJobs(result.data.applications ?? []);
     setAssignedLoading(false);
   }, []);
-
-  // ─── Fetch Discovery Jobs ───
 
   const fetchDiscoveryJobs = useCallback(async () => {
     setDiscoveryLoading(true);
     setDiscoveryError(null);
-
     const result = await api.get<{ jobs: Job[] }>('/api/jobs', { limit: 10 });
-
     if (isApiError(result)) {
       setDiscoveryError(result.message);
       setDiscoveryLoading(false);
       return;
     }
-
     setDiscoveryJobs(result.data.jobs ?? []);
     setDiscoveryLoading(false);
   }, []);
 
-  // ─── Fetch All Data ───
-
-  const fetchAll = useCallback(() => {
-    fetchAssignedJobs();
-    fetchDiscoveryJobs();
-  }, [fetchAssignedJobs, fetchDiscoveryJobs]);
+  const featured = useServiceStore((s) => s.featured);
+  const trending = useServiceStore((s) => s.trending);
+  const fetchFeatured = useServiceStore((s) => s.fetchFeatured);
+  const fetchTrending = useServiceStore((s) => s.fetchTrending);
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    fetchAssignedJobs();
+    fetchDiscoveryJobs();
+    fetchFeatured();
+    fetchTrending();
+  }, [fetchAssignedJobs, fetchDiscoveryJobs, fetchFeatured, fetchTrending]);
 
-  // ─── Helpers ───
+  const userName = user?.name ?? 'there';
+  const city = user?.workerProfile?.location?.city;
 
-  const userName = user?.name ?? 'Worker';
-  const profilePhoto = user?.workerProfile?.profilePhoto;
 
-  const formatTime = (iso: string) => {
+  const formatShift = (iso?: string) => {
+    if (!iso) return '';
     const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
     return date.toLocaleString('en-IN', {
       day: 'numeric',
       month: 'short',
@@ -112,484 +106,512 @@ const WorkerHomeScreen: React.FC = () => {
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'assigned':
-        return '#3B82F6';
-      case 'ongoing':
-        return '#F59E0B';
-      case 'completed':
-        return '#10B981';
-      case 'no_show':
-        return '#EF4444';
-      default:
-        return '#6B7280';
-    }
-  };
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-  // ─── Render: Header ───
-
-  const renderHeader = () => (
-    <View style={styles.darkSection}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.welcomeText}>Welcome, {userName}</Text>
-          <Text style={styles.subtitleText}>Find your next gig</Text>
-        </View>
-        <View style={styles.avatarContainer}>
-          {profilePhoto ? (
-            <Image source={{ uri: profilePhoto }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitial}>
-                {userName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </View>
-  );
-
-  // ─── Render: Assigned Job Card ───
-
-  const renderAssignedJobCard = (item: AssignedJob) => {
-    const job = typeof item.job === 'object' ? item.job : null;
-    const event = typeof item.event === 'object' ? item.event : null;
-    const status = item.workStatus ?? item.status ?? 'assigned';
-
-    return (
-      <View key={item._id} style={styles.assignedCard}>
-        <View style={styles.assignedCardHeader}>
-          <Text style={styles.assignedEventName} numberOfLines={1}>
-            {event?.title ?? 'Event'}
-          </Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '20' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
-              {status.replace('_', ' ').toUpperCase()}
-            </Text>
-          </View>
-        </View>
-
-        {job && (
-          <>
-            <Text style={styles.assignedRole}>{(job as any).role}</Text>
-            <View style={styles.assignedDetails}>
-              <Text style={styles.assignedDetailText}>
-                🕐 {formatTime((job as any).shiftStart)} — {formatTime((job as any).shiftEnd)}
-              </Text>
-              <Text style={styles.assignedPay}>₹{(job as any).payRate}</Text>
-            </View>
-          </>
-        )}
-      </View>
-    );
-  };
-
-  // ─── Render: Discovery Job Card ───
-
-  const renderDiscoveryCard = (item: Job) => {
-    const eventObj = typeof item.event === 'object' ? item.event : null;
-
-    return (
-      <TouchableOpacity
-        key={item._id}
-        style={styles.discoveryCard}
-        onPress={() => router.push(`/job/${item._id}`)}
-        activeOpacity={0.7}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.discoveryCardContent}>
-          <Text style={styles.discoveryJobName} numberOfLines={1}>
-            {eventObj?.title ?? 'Job'}
-          </Text>
-          <Text style={styles.discoveryRole}>{item.role}</Text>
-          <View style={styles.discoveryRatingRow}>
-            <Text style={styles.discoveryStar}>⭐</Text>
-            <Text style={styles.discoveryRating}>
-              {typeof item.organizer === 'object'
-                ? (item.organizer.organizerProfile?.ratingAvg?.toFixed(1) ?? '—')
-                : '—'}
+        {/* ── Navy header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
+                Welcome, {userName}
+              </Text>
+              <Text variant="bodySm" color="rgba(249,244,244,0.7)" style={styles.headerSub}>
+                {city ? `📍 ${city}` : 'Find your next gig'}
+              </Text>
+            </View>
+
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.headerIcon}
+                activeOpacity={0.7}
+                onPress={() => router.push('/notifications')}
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
+              >
+                <Text style={styles.headerGlyph}>🔔</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIcon}
+                activeOpacity={0.7}
+                onPress={() => router.push('/(worker)/profile')}
+                accessibilityRole="button"
+                accessibilityLabel="Profile"
+              >
+                <Text style={styles.headerGlyph}>
+                  {userName.charAt(0).toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.search}
+            activeOpacity={0.8}
+            onPress={() => router.push('/(worker)/jobs')}
+            accessibilityRole="search"
+          >
+            <Text style={styles.searchGlyph}>🔍</Text>
+            <Text variant="bodySm" color={colors.textFaint}>
+              Find your perfect gig
             </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  // ─── Render: Assigned Jobs Section ───
-
-  const renderAssignedSection = () => {
-    if (assignedLoading) {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Assigned Jobs</Text>
-          <SkeletonCard wide />
-          <SkeletonCard wide />
-        </View>
-      );
-    }
-
-    if (assignedError) {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Assigned Jobs</Text>
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{assignedError}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchAssignedJobs}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-
-    if (assignedJobs.length === 0) {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Assigned Jobs</Text>
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No assigned jobs yet. Browse available jobs below!</Text>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>My Assigned Jobs</Text>
-        {assignedJobs.map(renderAssignedJobCard)}
-      </View>
-    );
-  };
-
-  // ─── Render: Discovery Section ───
-
-  const renderDiscoverySection = () => {
-    if (discoveryLoading) {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discover Jobs</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </ScrollView>
-        </View>
-      );
-    }
-
-    if (discoveryError) {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discover Jobs</Text>
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{discoveryError}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchDiscoveryJobs}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-
-    if (discoveryJobs.length === 0) {
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discover Jobs</Text>
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No jobs are currently available.</Text>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Discover Jobs</Text>
-          <TouchableOpacity onPress={() => router.push('/(worker)/jobs')}>
-            <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.discoveryScroll}
-        >
-          {discoveryJobs.map(renderDiscoveryCard)}
-        </ScrollView>
-      </View>
-    );
-  };
 
-  // ─── Main Render ───
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1C2340" />
-      <View style={styles.container}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {renderHeader()}
-          <View style={styles.lightSection}>
-            {renderAssignedSection()}
-            {renderDiscoverySection()}
+        {/* ── Promo banner ── */}
+        <View style={styles.section}>
+          <ImagePlaceholder seed="premium-banner" rounded="lg" style={styles.banner} />
+          <View style={styles.bannerCopy} pointerEvents="none">
+            <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
+              Premium Events{'\n'}For You
+            </Text>
+            <Text variant="bodySm" color="rgba(249,244,244,0.85)" style={styles.bannerSub}>
+              Top-paying gigs near you
+            </Text>
           </View>
-        </ScrollView>
-      </View>
+        </View>
+
+        {/* ── Core staff categories ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text variant="h3" weight="semibold">
+              Our Core Staff
+            </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(worker)/jobs')}>
+              <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                See All
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.categoryGrid}>
+            {CORE_STAFF.map((item) => (
+              <TouchableOpacity
+                key={item.role}
+                style={styles.categoryTile}
+                activeOpacity={0.8}
+                onPress={() => router.push('/(worker)/jobs')}
+              >
+                <ImagePlaceholder
+                  seed={item.role}
+                  glyph={item.glyph}
+                  rounded="md"
+                  style={styles.categoryThumb}
+                />
+                <Text variant="caption" weight="medium" center numberOfLines={2}>
+                  {item.role}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Assigned jobs ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text variant="h3" weight="semibold">
+              My Assigned Jobs
+            </Text>
+            {assignedJobs.length > 0 ? (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => router.push('/(worker)/applications')}
+              >
+                <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                  See All
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {assignedLoading ? (
+            <Card elevation="flat">
+              <Text variant="bodySm" color={colors.textMuted} center>
+                Loading your jobs…
+              </Text>
+            </Card>
+          ) : assignedJobs.length === 0 ? (
+            <Card elevation="flat">
+              <Text variant="bodySm" color={colors.textMuted} center>
+                No assigned jobs yet. Browse available jobs below.
+              </Text>
+            </Card>
+          ) : (
+            assignedJobs.slice(0, 3).map((item) => {
+              const role = typeof item.job === 'object' ? item.job.role : 'Job';
+              const eventTitle = typeof item.event === 'object' ? item.event.title : 'Event';
+              const pay = typeof item.job === 'object' ? item.job.payRate : undefined;
+              const shiftStart = typeof item.job === 'object' ? item.job.shiftStart : undefined;
+
+              return (
+                <Card key={item._id} style={styles.bookingCard} padded={false}>
+                  <ImagePlaceholder seed={role} glyph="📅" rounded="md" style={styles.bookingThumb} />
+                  <View style={styles.bookingBody}>
+                    <Text variant="body" weight="semibold" numberOfLines={1}>
+                      {eventTitle}
+                    </Text>
+                    <Text variant="bodySm" color={colors.textMuted} numberOfLines={1}>
+                      {role}
+                    </Text>
+                    <View style={styles.bookingMeta}>
+                      <Text variant="caption" color={colors.textFaint}>
+                        🕐 {formatShift(shiftStart)}
+                      </Text>
+                    </View>
+                    <View style={styles.bookingFooter}>
+                      <StatusPill status={item.workStatus ?? item.status} />
+                      {pay != null ? (
+                        <Text variant="body" weight="bold" color={colors.secondary}>
+                          ₹{pay.toLocaleString('en-IN')}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                </Card>
+              );
+            })
+          )}
+        </View>
+
+        {/* ── Discovery ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text variant="h3" weight="semibold">
+              Nearby Services
+            </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(worker)/jobs')}>
+              <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                See All
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {discoveryLoading ? (
+            <Card elevation="flat">
+              <Text variant="bodySm" color={colors.textMuted} center>
+                Finding jobs near you…
+              </Text>
+            </Card>
+          ) : discoveryError ? (
+            <Card elevation="flat">
+              <Text variant="bodySm" color={colors.danger} center>
+                {discoveryError}
+              </Text>
+            </Card>
+          ) : discoveryJobs.length === 0 ? (
+            <Card elevation="flat">
+              <Text variant="bodySm" color={colors.textMuted} center>
+                No open jobs right now. Check back soon.
+              </Text>
+            </Card>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
+              {discoveryJobs.map((job) => {
+                const eventTitle =
+                  typeof job.event === 'object' && job.event ? job.event.title : 'Event';
+                return (
+                  <TouchableOpacity
+                    key={job._id}
+                    style={styles.discoverCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push(`/job/${job._id}`)}
+                  >
+                    <ImagePlaceholder
+                      seed={job.role}
+                      glyph="✨"
+                      rounded="md"
+                      style={styles.discoverThumb}
+                    />
+                    <Text variant="bodySm" weight="semibold" numberOfLines={1} style={styles.discoverTitle}>
+                      {eventTitle}
+                    </Text>
+                    <Text variant="caption" color={colors.textMuted} numberOfLines={1}>
+                      {job.role}
+                    </Text>
+                    <View style={styles.discoverFooter}>
+                      <Text variant="bodySm" weight="bold" color={colors.secondary}>
+                        ₹{job.payRate?.toLocaleString('en-IN')}
+                      </Text>
+                      {job.distanceKm != null ? (
+                        <Text variant="caption" color={colors.textFaint}>
+                          {job.distanceKm.toFixed(1)} km
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+
+        {/* ── Featured workers ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text variant="h3" weight="semibold">
+              Featured Services
+            </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/services')}>
+              <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                See All
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {featured.length === 0 ? (
+            <Card elevation="flat">
+              <Text variant="bodySm" color={colors.textMuted} center>
+                No featured services right now.
+              </Text>
+            </Card>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
+              {featured.map((service) => (
+                <TouchableOpacity
+                  key={service._id}
+                  style={styles.featuredCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push(`/services/${service._id}`)}
+                >
+                  <ImagePlaceholder
+                    seed={service.role}
+                    glyph="✨"
+                    rounded="pill"
+                    style={styles.featuredAvatar}
+                  />
+                  <Text variant="bodySm" weight="semibold" center numberOfLines={1}>
+                    {service.title}
+                  </Text>
+                  <Text variant="caption" color={colors.textMuted} center numberOfLines={1}>
+                    {service.role}
+                  </Text>
+                  <Text variant="caption" color={colors.textFaint} center>
+                    ⭐ {service.ratingAvg > 0 ? service.ratingAvg.toFixed(1) : 'New'}
+                  </Text>
+                  <View style={styles.bookBtn}>
+                    <Text variant="caption" weight="semibold" color={colors.textOnPrimary}>
+                      Book Now
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
+        {/* ── Popular & trending ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text variant="h3" weight="semibold">
+              Popular &amp; Trending
+            </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(worker)/jobs')}>
+              <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                See All
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {trending.length === 0 ? (
+            <Card elevation="flat">
+              <Text variant="bodySm" color={colors.textMuted} center>
+                Nothing trending yet. Check back soon.
+              </Text>
+            </Card>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
+              {trending.map((service) => (
+                <TouchableOpacity
+                  key={service._id}
+                  style={styles.trendCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push(`/services/${service._id}`)}
+                >
+                  <ImagePlaceholder
+                    seed={service.role}
+                    glyph="✨"
+                    rounded="md"
+                    style={styles.trendThumb}
+                  />
+                  <Text variant="bodySm" weight="semibold" numberOfLines={1} style={styles.trendTitle}>
+                    {service.title}
+                  </Text>
+                  <Text variant="caption" color={colors.textMuted} numberOfLines={1}>
+                    {service.bookingCount > 0
+                      ? `${service.bookingCount} booked`
+                      : service.role}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
+        <Text variant="hero" weight="bold" color={colors.surface} center style={styles.watermark}>
+          DOLX
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
-// ─── Styles ───
-
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#1C2340',
+  safeArea: { flex: 1, backgroundColor: colors.primary },
+  scroll: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { paddingBottom: spacing.xxxl },
+
+  /* ── Header ── */
+  header: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
+    borderBottomLeftRadius: radius.xxl,
+    borderBottomRightRadius: radius.xxl,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F6FA',
-  },
-  scrollContent: {
-    paddingBottom: 80,
-  },
-  darkSection: {
-    backgroundColor: '#011945',
-    paddingHorizontal: 20,
-    paddingTop: 36,
-    paddingBottom: 24,
-  },
-  lightSection: {
-    backgroundColor: '#F5F6FA',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  // Header
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  subtitleText: {
-    fontSize: 14,
-    color: '#A0AEC0',
-  },
-  avatarContainer: {
-    marginLeft: 12,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerLeft: { flex: 1, marginRight: spacing.md },
+  headerSub: { marginTop: 2 },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
+  headerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitial: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  // Section
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
+  headerGlyph: { fontSize: 16, color: colors.textOnPrimary },
+  search: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    height: 46,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
+  },
+  searchGlyph: { fontSize: 14 },
+
+  /* ── Sections ── */
+  section: { paddingHorizontal: spacing.xl, marginTop: spacing.xxl },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1C2340',
-    marginBottom: 12,
+
+  /* ── Promo banner ── */
+  banner: { height: 140, width: '100%' },
+  bannerCopy: {
+    position: 'absolute',
+    left: spacing.xl + spacing.lg,
+    top: spacing.xl,
+    right: spacing.xxxl,
   },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3B82F6',
-    marginBottom: 12,
-  },
-  // Skeleton
-  skeletonCard: {
-    width: 200,
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: '#E2E8F0',
-    padding: 16,
-    marginRight: 12,
-  },
-  skeletonCardWide: {
-    width: '100%',
-    marginRight: 0,
-    marginBottom: 12,
-  },
-  skeletonLine: {
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#CBD5E1',
-    marginBottom: 10,
-    width: '80%',
-  },
-  skeletonLineShort: {
-    width: '50%',
-  },
-  skeletonLineMedium: {
-    width: '65%',
-  },
-  // Error
-  errorContainer: {
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#EF4444',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  retryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  // Empty
-  emptyContainer: {
-    padding: 24,
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  // Assigned Job Card
-  assignedCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  assignedCardHeader: {
+  bannerSub: { marginTop: spacing.xs },
+
+  /* ── Categories ── */
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  categoryTile: { width: '30%', alignItems: 'center', gap: spacing.xs },
+  categoryThumb: { width: '100%', aspectRatio: 1.15 },
+
+  /* ── Assigned job cards ── */
+  bookingCard: {
     flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  bookingThumb: { width: 72, height: 72 },
+  bookingBody: { flex: 1, justifyContent: 'space-between' },
+  bookingMeta: { marginTop: 2 },
+  bookingFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    marginTop: spacing.sm,
   },
-  assignedEventName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1C2340',
-    flex: 1,
-    marginRight: 8,
+
+  /* ── Horizontal discovery ── */
+  hScroll: { gap: spacing.md, paddingRight: spacing.xl },
+  discoverCard: {
+    width: 150,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.sm,
+    ...shadow.card,
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  assignedRole: {
-    fontSize: 14,
-    color: '#475569',
-    marginBottom: 6,
-  },
-  assignedDetails: {
+  discoverThumb: { width: '100%', height: 90, marginBottom: spacing.sm },
+  discoverTitle: { marginBottom: 2 },
+  discoverFooter: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
+
+  /* ── Featured workers ── */
+  demoTag: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+    backgroundColor: colors.warningBg,
+  },
+  featuredCard: {
+    width: 132,
     alignItems: 'center',
+    gap: 2,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.card,
   },
-  assignedDetailText: {
-    fontSize: 12,
-    color: '#64748B',
-    flex: 1,
+  featuredAvatar: { width: 56, height: 56, marginBottom: spacing.xs },
+  bookBtn: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
-  assignedPay: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#10B981',
+
+  /* ── Trending ── */
+  trendCard: {
+    width: 140,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.sm,
+    ...shadow.card,
   },
-  // Discovery Card
-  discoveryScroll: {
-    paddingRight: 16,
-  },
-  discoveryCard: {
-    width: 180,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  discoveryCardContent: {
-    flex: 1,
-  },
-  discoveryJobName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1C2340',
-    marginBottom: 4,
-  },
-  discoveryRole: {
-    fontSize: 13,
-    color: '#475569',
-    marginBottom: 8,
-  },
-  discoveryRatingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  discoveryStar: {
-    fontSize: 12,
-    marginRight: 4,
-  },
-  discoveryRating: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '600',
-  },
+  trendThumb: { width: '100%', height: 92, marginBottom: spacing.sm },
+  trendTitle: { marginBottom: 1 },
+
+  watermark: { marginTop: spacing.xxxl, letterSpacing: 4 },
 });
 
 export default WorkerHomeScreen;

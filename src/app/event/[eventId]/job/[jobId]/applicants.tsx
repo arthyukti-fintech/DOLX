@@ -3,13 +3,15 @@ import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Pressable,
     ScrollView,
+    StatusBar,
     StyleSheet,
-    Text,
     View,
 } from 'react-native';
-import api, { isApiError } from "../../../../../services/api";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, ScreenHeader, StatusPill, Text } from '../../../../../components/ui';
+import api, { isApiError } from '../../../../../services/api';
+import { colors, radius, spacing } from '../../../../../theme';
 import { Application, ApplicationStatus, Job, User } from '../../../../../types';
 
 // ─── Types ───
@@ -32,27 +34,14 @@ function formatDate(isoString: string): string {
   });
 }
 
-function getExperienceBadgeStyle(level: string) {
+function getExperienceTone(level: string): { bg: string; fg: string } {
   switch (level) {
     case 'Expert':
-      return { backgroundColor: '#e8f5e9', color: '#2e7d32' };
+      return { bg: colors.successBg, fg: colors.success };
     case 'Intermediate':
-      return { backgroundColor: '#e3f2fd', color: '#1565c0' };
+      return { bg: colors.surface, fg: colors.primary };
     default:
-      return { backgroundColor: '#fff3e0', color: '#e65100' };
-  }
-}
-
-function getStatusBadgeStyle(status: ApplicationStatus) {
-  switch (status) {
-    case 'accepted':
-      return { backgroundColor: '#e8f5e9', color: '#2e7d32' };
-    case 'rejected':
-      return { backgroundColor: '#ffebee', color: '#c62828' };
-    case 'cancelled':
-      return { backgroundColor: '#f5f5f5', color: '#616161' };
-    default:
-      return { backgroundColor: '#fff8e1', color: '#f57f17' };
+      return { bg: colors.warningBg, fg: colors.warning };
   }
 }
 
@@ -68,7 +57,7 @@ export default function ApplicantManagerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  // ─── Fetch applicants ───
+  // ─── Fetch ───
 
   const fetchApplicants = useCallback(async () => {
     if (!jobId) return;
@@ -76,7 +65,7 @@ export default function ApplicantManagerScreen() {
     setIsLoading(true);
     setError(null);
 
-    // Fetch job details for filledCount/numberOfWorkers
+    // Job details drive the filled/total counts shown above the list.
     const jobResult = await api.get<{ job: Job }>(`/api/jobs/${jobId}`);
     if (isApiError(jobResult)) {
       setIsLoading(false);
@@ -85,7 +74,6 @@ export default function ApplicantManagerScreen() {
     }
     setJob(jobResult.data.job);
 
-    // Fetch applicants
     const result = await api.get<{ applicants: ApplicantData[] }>(
       `/api/jobs/${jobId}/applicants`
     );
@@ -104,13 +92,12 @@ export default function ApplicantManagerScreen() {
     fetchApplicants();
   }, [fetchApplicants]);
 
-  // ─── Accept/Reject with optimistic update ───
+  // ─── Accept / reject (optimistic, reverted on failure) ───
 
   const handleAccept = useCallback(
     async (applicationId: string) => {
       setActionLoadingId(applicationId);
 
-      // Optimistic update
       const previousApplicants = [...applicants];
       const previousJob = job ? { ...job } : null;
 
@@ -128,7 +115,6 @@ export default function ApplicantManagerScreen() {
       );
 
       if (isApiError(result)) {
-        // Revert optimistic update
         setApplicants(previousApplicants);
         setJob(previousJob);
         Alert.alert('Error', result.message || 'Could not accept applicant');
@@ -143,7 +129,6 @@ export default function ApplicantManagerScreen() {
     async (applicationId: string) => {
       setActionLoadingId(applicationId);
 
-      // Optimistic update
       const previousApplicants = [...applicants];
 
       setApplicants((prev) =>
@@ -157,7 +142,6 @@ export default function ApplicantManagerScreen() {
       );
 
       if (isApiError(result)) {
-        // Revert optimistic update
         setApplicants(previousApplicants);
         Alert.alert('Error', result.message || 'Could not reject applicant');
       }
@@ -167,416 +151,255 @@ export default function ApplicantManagerScreen() {
     [applicants]
   );
 
-  // ─── Derived state ───
+  const isPositionsFilled = job !== null && job.filledCount >= job.numberOfWorkers;
 
-  const isPositionsFilled =
-    job !== null && job.filledCount >= job.numberOfWorkers;
-
-  // ─── Loading State ───
+  // ─── Loading / error ───
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Applicants</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <ScreenHeader title="Applicants" />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1a73e8" />
-          <Text style={styles.loadingText}>Loading applicants...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text variant="bodySm" color={colors.textMuted}>
+            Loading applicants…
+          </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
-
-  // ─── Error State ───
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Applicants</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <ScreenHeader title="Applicants" />
         <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable onPress={fetchApplicants} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </Pressable>
+          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+            {error}
+          </Text>
+          <Button label="Retry" onPress={fetchApplicants} size="sm" fullWidth={false} />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
-  // ─── Main Render ───
+  // ─── Main ───
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>←</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Applicants</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <ScreenHeader title="Applicants" />
 
-      {/* Positions Filled Banner */}
-      {isPositionsFilled && (
-        <View style={styles.filledBanner}>
-          <Text style={styles.filledBannerText}>
-            Positions Filled ({job!.filledCount}/{job!.numberOfWorkers})
+      {/* Job summary */}
+      {job ? (
+        <View style={styles.summary}>
+          <Text variant="body" weight="semibold">
+            {job.role}
           </Text>
-        </View>
-      )}
-
-      {/* Job Summary */}
-      {job && (
-        <View style={styles.jobSummary}>
-          <Text style={styles.jobRole}>{job.role}</Text>
-          <Text style={styles.jobFilled}>
+          <Text
+            variant="bodySm"
+            weight="semibold"
+            color={isPositionsFilled ? colors.success : colors.textMuted}
+          >
             {job.filledCount} / {job.numberOfWorkers} filled
+            {isPositionsFilled ? ' ✓' : ''}
           </Text>
         </View>
-      )}
+      ) : null}
 
-      {/* Applicants List */}
+      {isPositionsFilled ? (
+        <View style={styles.banner}>
+          <Text variant="caption" weight="semibold" color={colors.warning}>
+            All positions are filled — no further applicants can be accepted.
+          </Text>
+        </View>
+      ) : null}
+
       <ScrollView
-        style={styles.scrollView}
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {applicants.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No applicants yet</Text>
-          </View>
+          <Card elevation="flat" style={styles.stateCard}>
+            <Text style={styles.stateGlyph}>👤</Text>
+            <Text variant="body" weight="semibold" center>
+              No applicants yet
+            </Text>
+            <Text variant="bodySm" color={colors.textMuted} center>
+              Workers who apply to this job will show up here.
+            </Text>
+          </Card>
         ) : (
           applicants.map((applicant) => {
             const workerProfile = applicant.worker.workerProfile;
             const isPending = applicant.status === 'pending';
-            const isActionDisabled = actionLoadingId === applicant._id;
-            const acceptDisabled =
-              isActionDisabled || (isPositionsFilled && isPending);
-
-            const statusStyle = getStatusBadgeStyle(applicant.status);
-            const expStyle = workerProfile
-              ? getExperienceBadgeStyle(workerProfile.experienceLevel)
+            const isBusy = actionLoadingId === applicant._id;
+            const acceptDisabled = isBusy || (isPositionsFilled && isPending);
+            const expTone = workerProfile
+              ? getExperienceTone(workerProfile.experienceLevel)
               : null;
 
             return (
-              <View key={applicant._id} style={styles.applicantCard}>
-                {/* Top row: name + status */}
-                <View style={styles.cardTopRow}>
-                  <Text style={styles.applicantName}>
-                    {applicant.worker.name}
-                  </Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: statusStyle.backgroundColor },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.statusText, { color: statusStyle.color }]}
-                    >
-                      {applicant.status.charAt(0).toUpperCase() +
-                        applicant.status.slice(1)}
+              <Card key={applicant._id} style={styles.card}>
+                {/* Name + status */}
+                <View style={styles.cardTop}>
+                  <View style={styles.avatar}>
+                    <Text variant="body" weight="bold" color={colors.textOnPrimary}>
+                      {applicant.worker.name.charAt(0).toUpperCase()}
                     </Text>
                   </View>
+                  <Text variant="body" weight="semibold" style={styles.name} numberOfLines={1}>
+                    {applicant.worker.name}
+                  </Text>
+                  <StatusPill status={applicant.status} />
                 </View>
 
-                {/* Worker details */}
-                {workerProfile && (
-                  <View style={styles.detailsSection}>
-                    {/* Skills */}
+                {/* Details */}
+                {workerProfile ? (
+                  <View style={styles.details}>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Skills</Text>
-                      <Text style={styles.detailValue} numberOfLines={2}>
+                      <Text variant="caption" color={colors.textFaint} style={styles.detailLabel}>
+                        Skills
+                      </Text>
+                      <Text variant="bodySm" style={styles.detailValue} numberOfLines={2}>
                         {workerProfile.skills.join(', ') || 'Not specified'}
                       </Text>
                     </View>
 
-                    {/* Experience Level */}
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Experience</Text>
-                      {expStyle && (
-                        <View
-                          style={[
-                            styles.expBadge,
-                            { backgroundColor: expStyle.backgroundColor },
-                          ]}
-                        >
-                          <Text style={{ color: expStyle.color, fontSize: 12, fontWeight: '600' }}>
+                      <Text variant="caption" color={colors.textFaint} style={styles.detailLabel}>
+                        Experience
+                      </Text>
+                      {expTone ? (
+                        <View style={[styles.expBadge, { backgroundColor: expTone.bg }]}>
+                          <Text variant="caption" weight="semibold" color={expTone.fg}>
                             {workerProfile.experienceLevel}
                           </Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
 
-                    {/* Rating */}
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Rating</Text>
-                      <Text style={styles.detailValue}>
-                        ⭐ {workerProfile.ratingAvg.toFixed(1)} (
-                        {workerProfile.ratingCount} reviews)
+                      <Text variant="caption" color={colors.textFaint} style={styles.detailLabel}>
+                        Rating
+                      </Text>
+                      <Text variant="bodySm" style={styles.detailValue}>
+                        ⭐ {workerProfile.ratingAvg.toFixed(1)} ({workerProfile.ratingCount}{' '}
+                        {workerProfile.ratingCount === 1 ? 'review' : 'reviews'})
                       </Text>
                     </View>
                   </View>
-                )}
+                ) : null}
 
-                {/* Applied date */}
-                <Text style={styles.appliedDate}>
-                  Applied: {formatDate(applicant.createdAt)}
+                <Text variant="caption" color={colors.textFaint} style={styles.applied}>
+                  Applied {formatDate(applicant.createdAt)}
                 </Text>
 
-                {/* Action buttons — only for pending applicants */}
-                {isPending && (
-                  <View style={styles.actionRow}>
-                    <Pressable
-                      style={[
-                        styles.acceptButton,
-                        acceptDisabled && styles.disabledButton,
-                      ]}
+                {/* Actions */}
+                {isPending ? (
+                  <View style={styles.actions}>
+                    <Button
+                      label="Accept"
                       onPress={() => handleAccept(applicant._id)}
                       disabled={acceptDisabled}
-                    >
-                      {isActionDisabled ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={styles.acceptButtonText}>Accept</Text>
-                      )}
-                    </Pressable>
-
-                    <Pressable
-                      style={[
-                        styles.rejectButton,
-                        isActionDisabled && styles.disabledButton,
-                      ]}
+                      loading={isBusy}
+                      size="sm"
+                      style={styles.actionBtn}
+                    />
+                    <Button
+                      label="Reject"
+                      variant="outline"
                       onPress={() => handleReject(applicant._id)}
-                      disabled={isActionDisabled}
-                    >
-                      {isActionDisabled ? (
-                        <ActivityIndicator size="small" color="#c62828" />
-                      ) : (
-                        <Text style={styles.rejectButtonText}>Reject</Text>
-                      )}
-                    </Pressable>
+                      disabled={isBusy}
+                      size="sm"
+                      style={styles.actionBtn}
+                    />
                   </View>
-                )}
-              </View>
+                ) : null}
+              </Card>
             );
           })
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: '#1a1a2e',
-    paddingTop: 56,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+  safe: { flex: 1, backgroundColor: colors.background },
+
+  summary: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.md,
   },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
+  banner: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.warningBg,
   },
-  backText: {
-    color: '#ffffff',
-    fontSize: 20,
+
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: spacing.xl, paddingBottom: 40 },
+
+  card: { marginBottom: spacing.md },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
-  headerTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerSpacer: {
-    width: 36,
+  name: { flex: 1 },
+
+  details: { gap: spacing.sm },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  detailLabel: { width: 76 },
+  detailValue: { flex: 1 },
+  expBadge: {
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
   },
+
+  applied: { marginTop: spacing.md },
+
+  actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  actionBtn: { flex: 1 },
+
+  /* States */
   centered: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xxxl,
+  },
+  stateCard: {
     alignItems: 'center',
-    paddingHorizontal: 24,
+    gap: spacing.sm,
+    paddingVertical: spacing.xxxl,
+    marginTop: spacing.xl,
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-  },
-  errorText: {
-    fontSize: 15,
-    color: '#d32f2f',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#1a73e8',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  filledBanner: {
-    backgroundColor: '#fff3e0',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  filledBannerText: {
-    color: '#e65100',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  jobSummary: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  jobRole: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  jobFilled: {
-    fontSize: 13,
-    color: '#666',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  emptyContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#666',
-  },
-  applicantCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  applicantName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a2e',
-    flex: 1,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  detailsSection: {
-    marginBottom: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  detailLabel: {
-    fontSize: 13,
-    color: '#888',
-    width: 80,
-  },
-  detailValue: {
-    fontSize: 13,
-    color: '#333',
-    flex: 1,
-  },
-  expBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  appliedDate: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  acceptButton: {
-    flex: 1,
-    backgroundColor: '#1a73e8',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  acceptButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  rejectButton: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#c62828',
-  },
-  rejectButtonText: {
-    color: '#c62828',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
+  stateGlyph: { fontSize: 34 },
+  stateCopy: { marginBottom: spacing.xs },
 });

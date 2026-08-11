@@ -67,6 +67,26 @@ export interface User {
   };
 }
 
+/**
+ * A browsable entry in the service catalog - the role types an organizer can
+ * hire for. Deliberately carries no price: the organizer names the rate on the
+ * job-post form that "Book Now" opens.
+ */
+export interface Service {
+  _id: string;
+  title: string;
+  role: JobRole;
+  category?: EventCategory;
+  description?: string;
+  image?: string | null;
+  isFeatured: boolean;
+  isActive: boolean;
+  ratingAvg: number;
+  ratingCount: number;
+  bookingCount: number;
+  createdAt: string;
+}
+
 export interface Job {
   _id: string;
   event: Event | string;

@@ -7,11 +7,11 @@ import {
     FlatList,
     StatusBar,
     StyleSheet,
-    Text,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, Text } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
 // ─── Constants ───
 
@@ -95,167 +95,43 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ payment, userRole }) 
   const type = getTransactionType(payment, userRole);
   const isCredit = type === 'credit';
   const isPending = type === 'pending';
-  const accentColor = isCredit ? '#35B74B' : isPending ? '#B8860B' : '#F44336';
-  const iconBg = isCredit ? '#DFF4E2' : isPending ? '#FDF3DC' : '#FCE2E2';
-  const title = getEventOrJobName(payment);
-  const dateTime = formatDateTime(payment.createdAt);
-  const amount = getDisplayAmount(payment, userRole);
+
+  const accent = isCredit ? colors.success : isPending ? colors.warning : colors.danger;
+  const iconBg = isCredit ? colors.successBg : isPending ? colors.warningBg : colors.dangerBg;
+  const glyph = isCredit ? '↓' : isPending ? '⏳' : '↑';
   const sign = isCredit ? '+' : isPending ? '' : '-';
-  const badgeLabel = isCredit ? 'Credit' : isPending ? 'Pending' : 'Debit';
+  const badge = isCredit ? 'Credit' : isPending ? 'Pending' : 'Debit';
 
   return (
-    <View style={cardStyles.card}>
-      <View style={[cardStyles.iconContainer, { backgroundColor: iconBg }]}>
-        <Text style={[cardStyles.arrow, { color: accentColor }]}>
-          {isCredit ? '↓' : isPending ? '⏳' : '↑'}
-        </Text>
+    <Card style={styles.txCard} padded={false}>
+      <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
+        <Text style={[styles.txGlyph, { color: accent }]}>{glyph}</Text>
       </View>
 
-      <View style={cardStyles.content}>
-        <Text style={cardStyles.title} numberOfLines={1}>
-          {title}
+      <View style={styles.txBody}>
+        <Text variant="bodySm" weight="semibold" numberOfLines={1}>
+          {getEventOrJobName(payment)}
         </Text>
-        <View style={cardStyles.metaRow}>
-          <Text style={cardStyles.metaIcon}>🕐</Text>
-          <Text style={cardStyles.metaText}>{dateTime}</Text>
-          <View style={cardStyles.badge}>
-            <Text style={cardStyles.badgeText}>{badgeLabel}</Text>
+        <View style={styles.txMeta}>
+          <Text variant="caption" color={colors.textFaint}>
+            🕐 {formatDateTime(payment.createdAt)}
+          </Text>
+          <View style={styles.txBadge}>
+            <Text variant="caption" weight="medium" color={colors.textMuted}>
+              {badge}
+            </Text>
           </View>
         </View>
       </View>
 
-      <Text style={[cardStyles.amount, { color: accentColor }]}>
-        {sign}₹{formatAmount(amount)}
+      <Text variant="body" weight="bold" color={accent}>
+        {sign}₹{formatAmount(getDisplayAmount(payment, userRole))}
       </Text>
-    </View>
+    </Card>
   );
 };
 
-const cardStyles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F4F4F4',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    flexShrink: 0,
-  },
-  arrow: {
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#222222',
-    marginBottom: 5,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'nowrap',
-  },
-  metaIcon: {
-    fontSize: 10,
-    marginRight: 3,
-    color: '#888888',
-  },
-  metaText: {
-    fontSize: 10,
-    color: '#666666',
-    marginRight: 8,
-    flexShrink: 1,
-  },
-  badge: {
-    backgroundColor: '#E8E8E8',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  badgeText: {
-    fontSize: 9,
-    color: '#555555',
-    fontWeight: '600',
-  },
-  amount: {
-    fontSize: 15,
-    fontWeight: '700',
-    flexShrink: 0,
-  },
-});
-
-// ─── Header ───
-
-interface WalletHeaderProps {
-  totalAmount: number;
-  userRole: 'worker' | 'organizer' | 'admin';
-}
-
-const WalletHeader: React.FC<WalletHeaderProps> = ({ totalAmount, userRole }) => {
-  const totalLabel = userRole === 'worker' ? 'Total Earned' : 'Total Spent';
-
-  return (
-    <View style={headerStyles.container}>
-      <Text style={headerStyles.heading}>My Wallet</Text>
-      <View style={headerStyles.totalCard}>
-        <Text style={headerStyles.totalLabel}>{totalLabel}</Text>
-        <Text style={headerStyles.totalAmount}>₹{formatAmount(totalAmount)}</Text>
-      </View>
-    </View>
-  );
-};
-
-const headerStyles = StyleSheet.create({
-  container: {
-    backgroundColor: '#1B2547',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    paddingTop: 28,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
-    height: 200,
-  },
-  heading: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 20,
-  },
-  totalCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-  },
-  totalLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  totalAmount: {
-    color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '700',
-  },
-});
-
-// ─── Main Wallet Screen Component ───
+// ─── Main Wallet Screen ───
 
 const WalletScreen: React.FC = () => {
   const { user } = useAuthStore();
@@ -268,7 +144,6 @@ const WalletScreen: React.FC = () => {
   useEffect(() => {
     fetchTransactions();
 
-    // Set up 15s timeout
     timeoutRef.current = setTimeout(() => {
       setTimedOut(true);
     }, FETCH_TIMEOUT_MS);
@@ -280,7 +155,6 @@ const WalletScreen: React.FC = () => {
     };
   }, []);
 
-  // Clear timeout when loading finishes
   useEffect(() => {
     if (!isLoading && timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -293,7 +167,6 @@ const WalletScreen: React.FC = () => {
     setTimedOut(false);
     fetchTransactions();
 
-    // Reset timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -303,85 +176,75 @@ const WalletScreen: React.FC = () => {
   }, [fetchTransactions]);
 
   const totalAmount = computeTotal(transactions, userRole);
+  const totalLabel = userRole === 'worker' ? 'Total Earned' : 'Total Spent';
 
-  const renderTransaction = useCallback(
-    ({ item }: { item: Payment }) => (
-      <TransactionCard payment={item} userRole={userRole} />
-    ),
-    [userRole]
-  );
-
-  const keyExtractor = useCallback((item: Payment) => item._id, []);
-
-  // Error or timeout state
   const showError = error || (timedOut && isLoading);
 
-  if (showError && transactions.length === 0) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <WalletHeader totalAmount={0} userRole={userRole} />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorMessage}>
-            {error || 'Unable to load transactions. Please try again.'}
-          </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleRetry}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
+        My Wallet
+      </Text>
 
-  // Loading state
-  if (isLoading && transactions.length === 0) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <WalletHeader totalAmount={0} userRole={userRole} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1B2547" />
-          <Text style={styles.loadingText}>Loading transactions...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Empty state
-  const renderEmpty = () => {
-    if (isLoading) return null;
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>💰</Text>
-        <Text style={styles.emptyTitle}>No transactions yet</Text>
-        <Text style={styles.emptyMessage}>
-          Your transaction history will appear here once you have payments.
+      <View style={styles.balanceCard}>
+        <Text variant="caption" color="rgba(249,244,244,0.65)">
+          {totalLabel}
+        </Text>
+        <Text variant="hero" weight="bold" color={colors.textOnPrimary} style={styles.balance}>
+          ₹{formatAmount(totalAmount)}
         </Text>
       </View>
-    );
-  };
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-      <WalletHeader totalAmount={totalAmount} userRole={userRole} />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Transactions</Text>
+      {renderHeader()}
 
-        <FlatList
-          data={transactions}
-          keyExtractor={keyExtractor}
-          renderItem={renderTransaction}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={renderEmpty}
-        />
+      <View style={styles.body}>
+        <Text variant="h3" weight="semibold" style={styles.sectionTitle}>
+          Transactions
+        </Text>
+
+        {showError && transactions.length === 0 ? (
+          <Card elevation="flat" style={styles.stateCard}>
+            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+              {error || 'Unable to load transactions. Please try again.'}
+            </Text>
+            <Button label="Retry" onPress={handleRetry} size="sm" fullWidth={false} />
+          </Card>
+        ) : isLoading && transactions.length === 0 ? (
+          <Card elevation="flat" style={styles.stateCard}>
+            <ActivityIndicator color={colors.primary} />
+            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+              Loading transactions…
+            </Text>
+          </Card>
+        ) : (
+          <FlatList
+            data={transactions}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => <TransactionCard payment={item} userRole={userRole} />}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              isLoading ? null : (
+                <Card elevation="flat" style={styles.stateCard}>
+                  <Text style={styles.stateGlyph}>💰</Text>
+                  <Text variant="body" weight="semibold" center>
+                    No transactions yet
+                  </Text>
+                  <Text variant="bodySm" color={colors.textMuted} center>
+                    Your payment history will appear here.
+                  </Text>
+                </Card>
+              )
+            }
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -392,81 +255,56 @@ export default WalletScreen;
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
+  safe: { flex: 1, backgroundColor: colors.primary },
+
+  header: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
+    borderBottomLeftRadius: radius.xxl,
+    borderBottomRightRadius: radius.xxl,
   },
-  section: {
-    flex: 1,
-    paddingTop: 24,
-    paddingHorizontal: 16,
+  balanceCard: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 16,
+  balance: { marginTop: spacing.xs },
+
+  body: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl },
+  sectionTitle: { marginTop: spacing.xl, marginBottom: spacing.md },
+  listContent: { paddingBottom: spacing.xxxl },
+
+  /* ── Transaction card ── */
+  txCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
-  listContent: {
-    paddingBottom: 32,
-  },
-  loadingContainer: {
-    flex: 1,
+  txIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.pill,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666666',
+  txGlyph: { fontSize: 16, fontWeight: '700' },
+  txBody: { flex: 1, gap: 3 },
+  txMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  txBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  errorIcon: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  errorMessage: {
-    fontSize: 15,
-    color: '#444444',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: '#1B2547',
-    borderRadius: 10,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+
+  /* ── States ── */
+  stateCard: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxxl },
+  stateGlyph: { fontSize: 34 },
+  stateCopy: { marginBottom: spacing.xs },
 });

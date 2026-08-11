@@ -1,23 +1,24 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
     Dimensions,
     Image,
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Input, Text } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
+import { colors, radius, spacing } from '../../theme';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const MOSAIC_HEIGHT = SCREEN_H * 0.45;
 
+// Decorative collage behind the sign-in card, matching the Figma hero.
+// These are fixed brand imagery rather than API-driven content.
 const IMAGES = {
   col1_img1: { uri: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=200&h=250&fit=crop' },
   col1_img2: { uri: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200&h=180&fit=crop' },
@@ -32,14 +33,12 @@ const IMAGES = {
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const login = useAuthStore((state) => state.login);
-  const user = useAuthStore((state) => state.user);
 
   const validate = (): boolean => {
     let valid = true;
@@ -71,27 +70,27 @@ const LoginScreen: React.FC = () => {
     if (error) {
       setApiError(error.message);
       setIsLoading(false);
+      return;
+    }
+
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser?.role === 'organizer') {
+      router.replace('/(organizer)/home');
     } else {
-      // Login successful — navigate based on role
-      const currentUser = useAuthStore.getState().user;
-      if (currentUser?.role === 'organizer') {
-        router.replace('/(organizer)/home');
-      } else {
-        router.replace('/(worker)/home');
-      }
+      router.replace('/(worker)/home');
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D1A" />
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Mosaic ── */}
+        {/* ── Hero collage ── */}
         <View style={styles.mosaicContainer}>
           <View style={styles.mosaicRotated}>
             <View style={styles.mosaicColumnLeft}>
@@ -112,119 +111,102 @@ const LoginScreen: React.FC = () => {
           <View style={styles.mosaicOverlay} pointerEvents="none" />
         </View>
 
-        {/* ── Bottom Card ── */}
+        {/* ── Sign-in card ── */}
         <View style={styles.card}>
-          <Text style={styles.brandName}>DOLX</Text>
-          <Text style={styles.tagline}>Event Hiring Made Simple</Text>
+          <Text variant="hero" weight="bold" color={colors.primary} style={styles.brandName}>
+            DOLX
+          </Text>
+          <Text variant="bodySm" color={colors.textMuted} style={styles.tagline}>
+            Event Hiring Made Simple
+          </Text>
 
-          {/* Email Input */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputIcon}>✉️</Text>
-            <TextInput
-              style={styles.phoneInput}
-              placeholder="Enter Your Email"
-              placeholderTextColor="#6B7280"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) setEmailError('');
-              }}
-              editable={!isLoading}
-            />
-          </View>
-          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          <Input
+            placeholder="Enter Your Email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (emailError) setEmailError('');
+            }}
+            editable={!isLoading}
+            error={emailError || undefined}
+            icon={<Text style={styles.inputIcon}>✉️</Text>}
+            containerStyle={styles.field}
+          />
 
-          {/* Password Input */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputIcon}>🔑</Text>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Enter Password"
-              placeholderTextColor="#6B7280"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) setPasswordError('');
-              }}
-              editable={!isLoading}
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.eyeIcon}>{showPassword ? '👁' : '🙈'}</Text>
-            </TouchableOpacity>
-          </View>
-          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+          <Input
+            placeholder="Enter Password"
+            isPassword
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (passwordError) setPasswordError('');
+            }}
+            editable={!isLoading}
+            error={passwordError || undefined}
+            icon={<Text style={styles.inputIcon}>🔑</Text>}
+            containerStyle={styles.field}
+          />
 
           <TouchableOpacity
             style={styles.forgotPasswordRow}
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/forgot-password')}
           >
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            <Text variant="bodySm" weight="semibold" color={colors.primary}>
+              Forgot Password?
+            </Text>
           </TouchableOpacity>
 
-          {/* API Error */}
-          {apiError ? <Text style={styles.apiErrorText}>{apiError}</Text> : null}
+          {apiError ? (
+            <Text variant="bodySm" color={colors.danger} center style={styles.apiError}>
+              {apiError}
+            </Text>
+          ) : null}
 
-          {/* Login Button */}
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-            activeOpacity={0.85}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.loginButtonText}>Log In</Text>
-            )}
-          </TouchableOpacity>
+          <Button label="Log In" onPress={handleLogin} loading={isLoading} style={styles.loginButton} />
 
-          {/* Divider */}
           <View style={styles.orRow}>
             <View style={styles.orLine} />
-            <Text style={styles.orText}>or register with</Text>
+            <Text variant="caption" color={colors.textFaint}>
+              or register with
+            </Text>
             <View style={styles.orLine} />
           </View>
 
-          {/* Social Icons */}
           <View style={styles.socialRow}>
             <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
               <Image
                 source={require('../../../assets/images/google.png')}
-                style={{ width: 22, height: 22 }}
+                style={styles.socialIcon}
                 resizeMode="contain"
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
               <Image
                 source={require('../../../assets/images/facebook.png')}
-                style={{ width: 22, height: 22 }}
+                style={styles.socialIcon}
                 resizeMode="contain"
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
               <Image
                 source={require('../../../assets/images/apple.png')}
-                style={{ width: 22, height: 22 }}
+                style={styles.socialIcon}
                 resizeMode="contain"
               />
             </TouchableOpacity>
           </View>
 
-          {/* Sign Up Link */}
           <View style={styles.signUpRow}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.push('/(auth)/signup')}
-            >
-              <Text style={styles.signUpLink}>Sign Up</Text>
+            <Text variant="bodySm" color={colors.textMuted}>
+              Don&apos;t have an account?{' '}
+            </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(auth)/signup')}>
+              <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                Sign Up
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -234,234 +216,89 @@ const LoginScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#0D0D1A',
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.primary },
+  scrollContent: { flexGrow: 1 },
 
-  /* ── Mosaic ── */
+  /* ── Hero collage ── */
   mosaicContainer: {
     height: MOSAIC_HEIGHT,
     overflow: 'hidden',
-    backgroundColor: '#0D0D1A',
+    backgroundColor: colors.primary,
   },
   mosaicRotated: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 8,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
     transform: [{ rotate: '12deg' }],
     marginTop: -30,
     marginLeft: -30,
     marginRight: -10,
   },
-  mosaicColumnLeft: {
-    flex: 1,
-    gap: 8,
-    marginTop: 0,
-  },
-  mosaicColumnCenter: {
-    flex: 1,
-    gap: 8,
-    marginTop: 40,
-  },
-  mosaicColumnRight: {
-    flex: 1,
-    gap: 8,
-    marginTop: 15,
-  },
-  mosaicImg1: { width: '100%', height: 150, borderRadius: 14 },
-  mosaicImg2: { width: '100%', height: 120, borderRadius: 14 },
-  mosaicImg3: { width: '100%', height: 130, borderRadius: 14 },
-  mosaicImg4: { width: '100%', height: 130, borderRadius: 14 },
-  mosaicImg5: { width: '100%', height: 150, borderRadius: 14 },
-  mosaicImg6: { width: '100%', height: 140, borderRadius: 14 },
-  mosaicImg7: { width: '100%', height: 120, borderRadius: 14 },
-  mosaicImg8: { width: '100%', height: 130, borderRadius: 14 },
+  mosaicColumnLeft: { flex: 1, gap: spacing.sm, marginTop: 0 },
+  mosaicColumnCenter: { flex: 1, gap: spacing.sm, marginTop: 40 },
+  mosaicColumnRight: { flex: 1, gap: spacing.sm, marginTop: 15 },
+  mosaicImg1: { width: '100%', height: 150, borderRadius: radius.lg },
+  mosaicImg2: { width: '100%', height: 120, borderRadius: radius.lg },
+  mosaicImg3: { width: '100%', height: 130, borderRadius: radius.lg },
+  mosaicImg4: { width: '100%', height: 130, borderRadius: radius.lg },
+  mosaicImg5: { width: '100%', height: 150, borderRadius: radius.lg },
+  mosaicImg6: { width: '100%', height: 140, borderRadius: radius.lg },
+  mosaicImg7: { width: '100%', height: 120, borderRadius: radius.lg },
+  mosaicImg8: { width: '100%', height: 130, borderRadius: radius.lg },
   mosaicOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(13, 13, 26, 0.3)',
+    backgroundColor: colors.overlay,
   },
 
   /* ── Card ── */
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     marginTop: -32,
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxxl,
     paddingBottom: 40,
     alignItems: 'center',
   },
-  brandName: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: '#1C2340',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  tagline: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 28,
-  },
+  brandName: { letterSpacing: -0.5, marginBottom: spacing.xs },
+  tagline: { marginBottom: spacing.xxl + spacing.xs },
 
-  /* ── Inputs ── */
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    height: 52,
-    paddingHorizontal: 14,
-    width: '100%',
-    marginBottom: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  countryCode: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 2,
-  },
-  flagEmoji: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  countryCodeText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  divider: {
-    color: '#D1D5DB',
-    fontSize: 20,
-    fontWeight: '300',
-    marginHorizontal: 10,
-  },
-  phoneInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#111827',
-  },
-  inputIcon: {
-    fontSize: 18,
-    marginRight: 10,
-  },
-  passwordInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#111827',
-  },
-  eyeIcon: {
-    fontSize: 18,
-    paddingLeft: 8,
-  },
+  field: { marginBottom: spacing.md },
+  inputIcon: { fontSize: 18 },
 
-  /* ── Forgot Password ── */
-  forgotPasswordRow: {
-    alignSelf: 'flex-end',
-    marginBottom: 12,
-  },
-  forgotPasswordText: {
-    fontSize: 13,
-    color: '#1C2340',
-    fontWeight: '600',
-  },
+  forgotPasswordRow: { alignSelf: 'flex-end', marginBottom: spacing.md },
+  apiError: { marginBottom: spacing.md },
 
-  /* ── Errors ── */
-  errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  apiErrorText: {
-    color: '#EF4444',
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 12,
-    marginTop: 4,
-  },
+  loginButton: { marginBottom: spacing.xxl },
 
-  /* ── Button ── */
-  loginButton: {
-    backgroundColor: '#1C2340',
-    borderRadius: 12,
-    height: 52,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-    marginBottom: 24,
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-
-  /* ── Divider ── */
   orRow: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 20,
-    gap: 12,
+    marginBottom: spacing.xl,
+    gap: spacing.md,
   },
-  orLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  orText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
+  orLine: { flex: 1, height: 1, backgroundColor: colors.border },
 
-  /* ── Social ── */
-  socialRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 24,
-  },
+  socialRow: { flexDirection: 'row', gap: spacing.lg, marginBottom: spacing.xxl },
   socialButton: {
     width: 52,
     height: 52,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 14,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  socialIcon: { width: 22, height: 22 },
 
-  /* ── Sign Up ── */
-  signUpRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  signUpText: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  signUpLink: {
-    fontSize: 13,
-    color: '#1C2340',
-    fontWeight: '600',
-  },
+  signUpRow: { flexDirection: 'row', alignItems: 'center' },
 });
 
 export default LoginScreen;

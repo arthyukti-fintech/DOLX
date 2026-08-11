@@ -2,17 +2,18 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    FlatList,
+    ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, ImagePlaceholder, StatusPill, Text } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { useEventStore } from '../../stores/eventStore';
-import { Event, EventStatus } from '../../types';
+import { colors, radius, spacing } from '../../theme';
+import { Event } from '../../types';
 
 // ─── Helpers ───
 
@@ -26,36 +27,6 @@ function formatDate(dateStr: string): string {
     });
   } catch {
     return dateStr;
-  }
-}
-
-function getStatusColor(status: EventStatus): string {
-  switch (status) {
-    case 'active':
-      return '#22C55E';
-    case 'completed':
-      return '#6366F1';
-    case 'draft':
-      return '#F59E0B';
-    case 'cancelled':
-      return '#EF4444';
-    default:
-      return '#9CA3AF';
-  }
-}
-
-function getStatusBg(status: EventStatus): string {
-  switch (status) {
-    case 'active':
-      return '#052E16';
-    case 'completed':
-      return '#1E1B4B';
-    case 'draft':
-      return '#451A03';
-    case 'cancelled':
-      return '#450A0A';
-    default:
-      return '#1C2340';
   }
 }
 
@@ -79,407 +50,251 @@ export default function OrganizerHomeScreen() {
     fetchMyEvents().then(() => setHasFetched(true));
   }, [fetchMyEvents]);
 
-  // ─── Derived data ───
-
   const activeEvents = events.filter((e) => e.status === 'active');
-  const activeCount = activeEvents.length;
-  const totalCount = events.length;
-
-  // ─── Header with organizer name ───
-
   const organizerName = user?.name ?? 'Organizer';
   const companyName = user?.organizerProfile?.companyName;
 
-  // ─── Render: Event Card (compact) ───
-
-  const renderEventCard = ({ item }: { item: Event }) => (
-    <TouchableOpacity
+  const renderEventCard = (item: Event) => (
+    <Card
+      key={item._id}
       style={styles.eventCard}
+      padded={false}
       onPress={() => router.push(`/event/${item._id}`)}
-      activeOpacity={0.7}
     >
-      <View style={styles.cardHeader}>
-        <Text style={styles.eventTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusBg(item.status) },
-          ]}
-        >
-          <Text
-            style={[styles.statusText, { color: getStatusColor(item.status) }]}
-          >
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+      <ImagePlaceholder
+        seed={item.eventType}
+        glyph="🎪"
+        rounded="md"
+        style={styles.eventThumb}
+      />
+      <View style={styles.eventBody}>
+        <View style={styles.eventTop}>
+          <Text variant="body" weight="semibold" numberOfLines={1} style={styles.eventTitle}>
+            {item.title}
           </Text>
+          <StatusPill status={item.status} />
         </View>
-      </View>
-      <View style={styles.cardBody}>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardIcon}>📅</Text>
-          <Text style={styles.cardLabel}>{formatDate(item.date)}</Text>
-        </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardIcon}>🏷️</Text>
-          <Text style={styles.cardLabel}>{item.eventType}</Text>
-        </View>
+        <Text variant="caption" color={colors.textMuted}>
+          📅 {formatDate(item.date)}
+        </Text>
+        <Text variant="caption" color={colors.textMuted}>
+          🏷️ {item.eventType}
+        </Text>
         {item.location?.city ? (
-          <View style={styles.cardRow}>
-            <Text style={styles.cardIcon}>📍</Text>
-            <Text style={styles.cardLabel}>{item.location.city}</Text>
-          </View>
+          <Text variant="caption" color={colors.textMuted}>
+            📍 {item.location.city}
+          </Text>
         ) : null}
       </View>
-    </TouchableOpacity>
+    </Card>
   );
-
-  // ─── Render: Error State ───
-
-  if (error && !isLoading && hasFetched && events.length === 0) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <View style={styles.headerSection}>
-          <Text style={styles.welcomeText}>
-            Welcome back, {organizerName}
-          </Text>
-          {companyName ? (
-            <Text style={styles.companyText}>{companyName}</Text>
-          ) : null}
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorTitle}>Failed to load data</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleRetry}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ─── Render: Loading State ───
-
-  if (isLoading && !hasFetched) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <View style={styles.headerSection}>
-          <Text style={styles.welcomeText}>
-            Welcome back, {organizerName}
-          </Text>
-          {companyName ? (
-            <Text style={styles.companyText}>{companyName}</Text>
-          ) : null}
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading your dashboard...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ─── Render: Empty State ───
-
-  const renderEmptyEvents = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>📋</Text>
-      <Text style={styles.emptyTitle}>No Events Yet</Text>
-      <Text style={styles.emptySubtitle}>
-        Create your first event to start hiring staff
-      </Text>
-    </View>
-  );
-
-  // ─── Main Render ───
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      <FlatList
-        data={activeEvents.slice(0, 5)}
-        keyExtractor={(item) => item._id}
-        renderItem={renderEventCard}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={hasFetched ? renderEmptyEvents : null}
-        ListHeaderComponent={
-          <>
-            {/* Header */}
-            <View style={styles.headerSection}>
-              <Text style={styles.welcomeText}>
+      >
+        {/* ── Navy header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
                 Welcome back, {organizerName}
               </Text>
               {companyName ? (
-                <Text style={styles.companyText}>{companyName}</Text>
+                <Text variant="bodySm" color="rgba(249,244,244,0.7)" style={styles.headerSub}>
+                  {companyName}
+                </Text>
               ) : null}
             </View>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              activeOpacity={0.7}
+              onPress={() => router.push('/(organizer)/profile')}
+              accessibilityRole="button"
+              accessibilityLabel="Profile"
+            >
+              <Text style={styles.headerGlyph}>{organizerName.charAt(0).toUpperCase()}</Text>
+            </TouchableOpacity>
+          </View>
 
-            {/* Quick Stats */}
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{activeCount}</Text>
-                <Text style={styles.statLabel}>Active Events</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{totalCount}</Text>
-                <Text style={styles.statLabel}>Total Events</Text>
-              </View>
+          {/* ── Stats ── */}
+          <View style={styles.statsRow}>
+            <View style={styles.statTile}>
+              <Text variant="h1" weight="bold" color={colors.textOnPrimary}>
+                {activeEvents.length}
+              </Text>
+              <Text variant="caption" color="rgba(249,244,244,0.7)">
+                Active Events
+              </Text>
             </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statTile}>
+              <Text variant="h1" weight="bold" color={colors.textOnPrimary}>
+                {events.length}
+              </Text>
+              <Text variant="caption" color="rgba(249,244,244,0.7)">
+                Total Events
+              </Text>
+            </View>
+          </View>
+        </View>
 
-            {/* Quick Actions */}
-            <View style={styles.actionsRow}>
+        {/* ── Quick actions ── */}
+        <View style={styles.section}>
+          <View style={styles.actionRow}>
+            <Button
+              label="✨  Create Event"
+              onPress={() => router.push('/(organizer)/create-event')}
+              size="md"
+              style={styles.actionBtn}
+            />
+            <Button
+              label="View All"
+              variant="outline"
+              size="md"
+              onPress={() => router.push('/(organizer)/events')}
+              style={styles.actionBtn}
+            />
+          </View>
+        </View>
+
+        {/* ── Active events ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text variant="h3" weight="semibold">
+              Active Events
+            </Text>
+            {events.length > 0 ? (
               <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => router.push('/(organizer)/create-event')}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.actionIcon}>✨</Text>
-                <Text style={styles.actionText}>Create Event</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButtonOutline}
+                activeOpacity={0.7}
                 onPress={() => router.push('/(organizer)/events')}
-                activeOpacity={0.85}
               >
-                <Text style={styles.actionIcon}>📋</Text>
-                <Text style={styles.actionTextOutline}>View All Events</Text>
+                <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                  See All
+                </Text>
               </TouchableOpacity>
-            </View>
-
-            {/* Section Title */}
-            {activeEvents.length > 0 ? (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Active Events</Text>
-                {activeEvents.length > 5 ? (
-                  <TouchableOpacity
-                    onPress={() => router.push('/(organizer)/events')}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.seeAllText}>See All</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
             ) : null}
-          </>
-        }
-      />
+          </View>
+
+          {isLoading && !hasFetched ? (
+            <Card elevation="flat" style={styles.stateCard}>
+              <ActivityIndicator color={colors.primary} />
+              <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+                Loading your events…
+              </Text>
+            </Card>
+          ) : error && events.length === 0 ? (
+            <Card elevation="flat" style={styles.stateCard}>
+              <Text variant="bodySm" color={colors.danger} center style={styles.stateCopy}>
+                {error}
+              </Text>
+              <Button label="Retry" onPress={handleRetry} size="sm" fullWidth={false} />
+            </Card>
+          ) : activeEvents.length === 0 ? (
+            <Card elevation="flat" style={styles.stateCard}>
+              <Text style={styles.emptyGlyph}>🎪</Text>
+              <Text variant="body" weight="semibold" center>
+                No active events
+              </Text>
+              <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+                Create your first event to start hiring staff.
+              </Text>
+              <Button
+                label="Create Event"
+                onPress={() => router.push('/(organizer)/create-event')}
+                size="sm"
+                fullWidth={false}
+              />
+            </Card>
+          ) : (
+            activeEvents.map(renderEventCard)
+          )}
+        </View>
+
+        <Text variant="hero" weight="bold" color={colors.surface} center style={styles.watermark}>
+          DOLX
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ─── Styles ───
-
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0D0D1A' },
+  safeArea: { flex: 1, backgroundColor: colors.primary },
+  scroll: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { paddingBottom: spacing.xxxl },
 
-  /* Header */
-  headerSection: {
-    backgroundColor: '#1B2547',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+  /* ── Header ── */
+  header: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    borderBottomLeftRadius: radius.xxl,
+    borderBottomRightRadius: radius.xxl,
   },
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerLeft: { flex: 1, marginRight: spacing.md },
+  headerSub: { marginTop: 2 },
+  headerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  companyText: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginTop: 4,
-  },
+  headerGlyph: { fontSize: 16, color: colors.textOnPrimary },
 
-  /* Stats Row */
   statsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginTop: 20,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#1C2340',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2A3350',
+    marginTop: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#A5B4FC',
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#9CA3AF',
-    marginTop: 4,
-  },
+  statTile: { flex: 1, alignItems: 'center', gap: 2 },
+  statDivider: { width: 1, height: 34, backgroundColor: 'rgba(255,255,255,0.15)' },
 
-  /* Quick Actions */
-  actionsRow: {
+  /* ── Sections ── */
+  section: { paddingHorizontal: spacing.xl, marginTop: spacing.xl },
+  sectionHead: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    paddingVertical: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButtonOutline: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-    backgroundColor: 'transparent',
-  },
-  actionIcon: { fontSize: 16 },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  actionTextOutline: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#A5B4FC',
-  },
-
-  /* Section Header */
-  sectionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  seeAllText: {
-    fontSize: 13,
-    color: '#A5B4FC',
-    fontWeight: '500',
-  },
+  actionRow: { flexDirection: 'row', gap: spacing.md },
+  actionBtn: { flex: 1 },
 
-  /* List content */
-  listContent: {
-    paddingBottom: 32,
-  },
-
-  /* Event Card */
+  /* ── Event cards ── */
   eventCard: {
-    backgroundColor: '#1C2340',
-    borderRadius: 14,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#2A3350',
-  },
-  cardHeader: {
     flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  eventThumb: { width: 72, height: 72 },
+  eventBody: { flex: 1, gap: 2 },
+  eventTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginBottom: 2,
   },
-  eventTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    flex: 1,
-    marginRight: 10,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  cardBody: { gap: 6 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardIcon: { fontSize: 14 },
-  cardLabel: { fontSize: 13, color: '#9CA3AF' },
+  eventTitle: { flex: 1 },
 
-  /* Loading */
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: { fontSize: 14, color: '#9CA3AF' },
+  /* ── States ── */
+  stateCard: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
+  stateCopy: { marginBottom: spacing.xs },
+  emptyGlyph: { fontSize: 32 },
 
-  /* Error */
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 8,
-  },
-  errorIcon: { fontSize: 40, marginBottom: 8 },
-  errorTitle: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
-  errorMessage: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-  },
-  retryButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-
-  /* Empty */
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 40,
-    paddingHorizontal: 32,
-    gap: 8,
-  },
-  emptyIcon: { fontSize: 48, marginBottom: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
+  watermark: { marginTop: spacing.xxxl, letterSpacing: 4 },
 });

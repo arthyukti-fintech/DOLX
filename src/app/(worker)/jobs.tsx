@@ -11,12 +11,13 @@ import {
     FlatList,
     StatusBar,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, ImagePlaceholder, Text } from '@/components/ui';
+import { colors, fonts, radius, spacing, type as typeScale } from '@/theme';
 
 // ─── Constants ───
 
@@ -61,97 +62,65 @@ const JobCard: React.FC<JobCardProps> = ({ job, onPress }) => {
   const eventName = getEventName(job.event);
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      style={cardStyles.card}
-      onPress={onPress}
-    >
-      <View style={cardStyles.header}>
-        <Text style={cardStyles.role} numberOfLines={1}>
-          {job.role}
+    <Card style={cardStyles.card} padded={false} onPress={onPress}>
+      <ImagePlaceholder seed={job.role} glyph="💼" rounded="md" style={cardStyles.thumb} />
+
+      <View style={cardStyles.body}>
+        <View style={cardStyles.topRow}>
+          <Text variant="body" weight="semibold" numberOfLines={1} style={cardStyles.role}>
+            {job.role}
+          </Text>
+          <Text variant="body" weight="bold" color={colors.secondary}>
+            ₹{job.payRate.toLocaleString('en-IN')}
+          </Text>
+        </View>
+
+        {eventName ? (
+          <Text variant="bodySm" color={colors.textMuted} numberOfLines={1}>
+            {eventName}
+          </Text>
+        ) : null}
+
+        <Text variant="caption" color={colors.textFaint}>
+          🕐 {formatTime(job.shiftStart)} – {formatTime(job.shiftEnd)}
         </Text>
-        <Text style={cardStyles.pay}>
-          ₹{job.payRate.toLocaleString('en-IN')}{' '}
-          <Text style={cardStyles.payType}>
+
+        <View style={cardStyles.bottomRow}>
+          <Text variant="caption" color={colors.textFaint}>
             / {job.payType === 'hourly' ? 'hr' : 'fixed'}
           </Text>
-        </Text>
+          {job.distanceKm !== undefined ? (
+            <Text variant="caption" weight="semibold" color={colors.primary}>
+              📍 {job.distanceKm} km away
+            </Text>
+          ) : null}
+        </View>
       </View>
-
-      {eventName ? (
-        <Text style={cardStyles.eventName} numberOfLines={1}>
-          {eventName}
-        </Text>
-      ) : null}
-
-      <View style={cardStyles.shiftRow}>
-        <Text style={cardStyles.shiftLabel}>Shift:</Text>
-        <Text style={cardStyles.shiftTime}>
-          {formatTime(job.shiftStart)} – {formatTime(job.shiftEnd)}
-        </Text>
-      </View>
-
-      {job.distanceKm !== undefined ? (
-        <Text style={cardStyles.distance}>📍 {job.distanceKm} km away</Text>
-      ) : null}
-    </TouchableOpacity>
+    </Card>
   );
 };
 
 const cardStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#F4F4F4',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 12,
-  },
-  header: {
     flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  thumb: { width: 68, height: 68 },
+  body: { flex: 1, gap: 2 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
+    gap: spacing.sm,
   },
-  role: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#222222',
-    flex: 1,
-    marginRight: 8,
-  },
-  pay: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1B2547',
-  },
-  payType: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#666666',
-  },
-  eventName: {
-    fontSize: 13,
-    color: '#555555',
-    marginBottom: 8,
-  },
-  shiftRow: {
+  role: { flex: 1 },
+  bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  shiftLabel: {
-    fontSize: 12,
-    color: '#888888',
-    marginRight: 4,
-  },
-  shiftTime: {
-    fontSize: 12,
-    color: '#444444',
-  },
-  distance: {
-    fontSize: 12,
-    color: '#1B2547',
-    fontWeight: '600',
-    marginTop: 8,
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
   },
 });
 
@@ -184,14 +153,17 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
 
   return (
     <View style={headerStyles.container}>
-      <Text style={headerStyles.heading}>Browse Jobs</Text>
+      <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
+        Browse Jobs
+      </Text>
 
-      {/* Search Input */}
+      {/* Search */}
       <View style={headerStyles.searchContainer}>
+        <Text style={headerStyles.searchGlyph}>🔍</Text>
         <TextInput
           style={headerStyles.searchInput}
-          placeholder="Search by role or event..."
-          placeholderTextColor="rgba(255,255,255,0.5)"
+          placeholder="Search by role or event…"
+          placeholderTextColor={colors.textFaint}
           value={searchText}
           onChangeText={onSearchChange}
           returnKeyType="search"
@@ -199,43 +171,55 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
         />
       </View>
 
-      {/* Location / distance */}
+      {/* Distance filter */}
       {locationStatus === 'granted' ? (
         <View style={headerStyles.radiusRow}>
-          <Text style={headerStyles.radiusLabel}>Within</Text>
+          <Text variant="caption" color="rgba(249,244,244,0.7)">
+            Within
+          </Text>
           {RADIUS_OPTIONS_KM.map((km) => (
             <TouchableOpacity
               key={km}
-              style={[headerStyles.radiusChip, radiusKm === km && headerStyles.radiusChipActive]}
+              style={[headerStyles.chip, radiusKm === km && headerStyles.chipActive]}
               onPress={() => onSelectRadius(km)}
               activeOpacity={0.7}
             >
-              <Text style={[headerStyles.radiusChipText, radiusKm === km && headerStyles.radiusChipTextActive]}>
+              <Text
+                variant="caption"
+                weight={radiusKm === km ? 'semibold' : 'regular'}
+                color={radiusKm === km ? colors.textOnPrimary : 'rgba(249,244,244,0.75)'}
+              >
                 {km}km
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       ) : locationStatus === 'denied' ? (
-        <TouchableOpacity style={headerStyles.locationBanner} onPress={onRetryLocation} activeOpacity={0.7}>
-          <Text style={headerStyles.locationBannerText}>
-            📍 Enable location to see jobs sorted by distance
+        <TouchableOpacity
+          style={headerStyles.locationBanner}
+          onPress={onRetryLocation}
+          activeOpacity={0.7}
+        >
+          <Text variant="caption" color="rgba(249,244,244,0.85)" style={headerStyles.bannerCopy}>
+            📍 Enable location to sort jobs by distance
           </Text>
-          <Text style={headerStyles.locationBannerAction}>Enable</Text>
+          <Text variant="caption" weight="semibold" color={colors.secondary}>
+            Enable
+          </Text>
         </TouchableOpacity>
       ) : null}
 
-      {/* Role Filter */}
+      {/* Role filter */}
       <View style={headerStyles.filterRow}>
         <TouchableOpacity
           style={headerStyles.filterButton}
           onPress={() => setShowRoleDropdown(!showRoleDropdown)}
           activeOpacity={0.7}
         >
-          <Text style={headerStyles.filterButtonText} numberOfLines={1}>
+          <Text variant="bodySm" color={colors.textOnPrimary} numberOfLines={1} style={headerStyles.filterLabel}>
             {selectedRole || 'All Roles'}
           </Text>
-          <Text style={headerStyles.filterArrow}>▼</Text>
+          <Text style={headerStyles.filterArrow}>▾</Text>
         </TouchableOpacity>
 
         {selectedRole ? (
@@ -244,12 +228,14 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
             onPress={() => onSelectRole(undefined)}
             activeOpacity={0.7}
           >
-            <Text style={headerStyles.clearButtonText}>Clear</Text>
+            <Text variant="caption" weight="semibold" color={colors.secondary}>
+              Clear
+            </Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
-      {/* Role Dropdown */}
+      {/* Role dropdown */}
       {showRoleDropdown && (
         <View style={headerStyles.dropdown}>
           {JOB_ROLES.map((role) => (
@@ -266,10 +252,9 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
               activeOpacity={0.7}
             >
               <Text
-                style={[
-                  headerStyles.dropdownItemText,
-                  selectedRole === role && headerStyles.dropdownItemTextActive,
-                ]}
+                variant="bodySm"
+                weight={selectedRole === role ? 'semibold' : 'regular'}
+                color={selectedRole === role ? colors.primary : colors.text}
               >
                 {role}
               </Text>
@@ -283,147 +268,97 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
 
 const headerStyles = StyleSheet.create({
   container: {
-    backgroundColor: '#1B2547',
-    paddingTop: 28,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    zIndex: 10,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    borderBottomLeftRadius: radius.xxl,
+    borderBottomRightRadius: radius.xxl,
   },
-  heading: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
+
   searchContainer: {
-    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    height: 46,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
   },
+  searchGlyph: { fontSize: 14 },
   searchInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#FFFFFF',
+    flex: 1,
+    fontFamily: fonts.bodyRegular,
+    fontSize: typeScale.bodySm.fontSize,
+    color: colors.text,
+    paddingVertical: 0,
   },
+
   radiusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginBottom: 12,
-    gap: 6,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
-  radiusLabel: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
-    marginRight: 2,
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  radiusChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  radiusChipActive: {
-    backgroundColor: '#FFFFFF',
-  },
-  radiusChipText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  radiusChipTextActive: {
-    color: '#1B2547',
-  },
+  chipActive: { backgroundColor: colors.secondary },
+
   locationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  locationBannerText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    flex: 1,
-    marginRight: 8,
-  },
-  locationBannerAction: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-  },
+  bannerCopy: { flex: 1 },
+
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
   filterButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flex: 1,
+    justifyContent: 'space-between',
+    height: 42,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  filterButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    flex: 1,
-  },
-  filterArrow: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 10,
-    marginLeft: 8,
-  },
+  filterLabel: { flex: 1 },
+  filterArrow: { fontSize: 14, color: colors.textOnPrimary },
   clearButton: {
-    marginLeft: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  clearButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+
   dropdown: {
-    position: 'absolute',
-    top: 170,
-    left: 20,
-    right: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    zIndex: 100,
+    marginTop: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
   },
   dropdownItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  dropdownItemActive: {
-    backgroundColor: '#EEF0FF',
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    color: '#333333',
-  },
-  dropdownItemTextActive: {
-    color: '#1B2547',
-    fontWeight: '600',
-  },
+  dropdownItemActive: { backgroundColor: colors.surface },
 });
 
 // ─── Main Screen ───
@@ -532,8 +467,10 @@ const JobBrowserScreen: React.FC = () => {
     if (isFetchingMore) {
       return (
         <View style={styles.footerLoading}>
-          <ActivityIndicator size="small" color="#1B2547" />
-          <Text style={styles.footerText}>Loading more jobs...</Text>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text variant="bodySm" color={colors.textMuted}>
+            Loading more jobs…
+          </Text>
         </View>
       );
     }
@@ -541,7 +478,9 @@ const JobBrowserScreen: React.FC = () => {
     if (!hasMore && filteredJobs.length > 0) {
       return (
         <View style={styles.endIndicator}>
-          <Text style={styles.endIndicatorText}>You've seen all available jobs</Text>
+          <Text variant="bodySm" color={colors.textFaint}>
+            You&apos;ve seen all available jobs
+          </Text>
         </View>
       );
     }
@@ -555,9 +494,11 @@ const JobBrowserScreen: React.FC = () => {
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>📋</Text>
-        <Text style={styles.emptyTitle}>No jobs found</Text>
-        <Text style={styles.emptyMessage}>
+        <Text style={styles.stateGlyph}>📋</Text>
+        <Text variant="body" weight="semibold" center>
+          No jobs found
+        </Text>
+        <Text variant="bodySm" color={colors.textMuted} center>
           {debouncedSearch.trim()
             ? 'Try adjusting your search or filters'
             : 'Check back later for new opportunities'}
@@ -570,7 +511,7 @@ const JobBrowserScreen: React.FC = () => {
   if (error && jobs.length === 0) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <JobsHeader
           selectedRole={filters.role}
           onSelectRole={handleRoleSelect}
@@ -581,16 +522,12 @@ const JobBrowserScreen: React.FC = () => {
           onSelectRadius={handleSelectRadius}
           onRetryLocation={retryLocation}
         />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleRetry}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
+        <View style={styles.centered}>
+          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+            {error}
+          </Text>
+          <Button label="Retry" onPress={handleRetry} size="sm" fullWidth={false} />
         </View>
       </SafeAreaView>
     );
@@ -598,7 +535,7 @@ const JobBrowserScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       <JobsHeader
         selectedRole={filters.role}
         onSelectRole={handleRoleSelect}
@@ -612,12 +549,14 @@ const JobBrowserScreen: React.FC = () => {
 
       {/* Initial loading state */}
       {isLoading && jobs.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1B2547" />
-          <Text style={styles.loadingText}>Loading jobs...</Text>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text variant="bodySm" color={colors.textMuted}>
+            Loading jobs…
+          </Text>
         </View>
       ) : (
-        <View style={styles.listSection}>
+        <View style={styles.listContainer}>
           <FlatList
             data={filteredJobs}
             keyExtractor={keyExtractor}
@@ -640,95 +579,39 @@ export default JobBrowserScreen;
 // ─── Screen Styles ───
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  listSection: {
-    flex: 1,
-    paddingTop: 16,
-    paddingHorizontal: 16,
-  },
+  safe: { flex: 1, backgroundColor: colors.primary },
+  listContainer: { flex: 1, backgroundColor: colors.background },
   listContent: {
-    paddingBottom: 32,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
-  loadingContainer: {
+
+  centered: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666666',
-  },
-  errorContainer: {
-    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing.xxxl,
+    gap: spacing.md,
+    backgroundColor: colors.background,
   },
-  errorIcon: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  errorMessage: {
-    fontSize: 15,
-    color: '#444444',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: '#1B2547',
-    borderRadius: 10,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+
+  stateGlyph: { fontSize: 40 },
+  stateCopy: { marginBottom: spacing.sm },
+
   emptyContainer: {
     alignItems: 'center',
+    gap: spacing.sm,
     paddingTop: 60,
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing.xxxl,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+
   footerLoading: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 16,
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
   },
-  footerText: {
-    marginLeft: 8,
-    fontSize: 13,
-    color: '#666666',
-  },
-  endIndicator: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  endIndicatorText: {
-    fontSize: 13,
-    color: '#999999',
-    fontStyle: 'italic',
-  },
+  endIndicator: { alignItems: 'center', paddingVertical: spacing.xl },
 });

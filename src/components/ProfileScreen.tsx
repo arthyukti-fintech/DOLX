@@ -12,12 +12,13 @@ import {
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, Text } from '@/components/ui';
+import { colors, fonts, radius, spacing, type as typeScale } from '@/theme';
 
 // ─── Constants ───
 
@@ -304,29 +305,24 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
     fetchProfile();
   }, [fetchProfile]);
 
+
   // ─── Render: Error State ───
 
   const showError = error || (timedOut && isLoading);
 
   if (showError && !profileUser) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <View style={styles.headerBar}>
-          <Text style={styles.headerTitle}>Profile</Text>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <View style={styles.topBar}>
+          <Text variant="h3" weight="semibold">Profile</Text>
         </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorMessage}>
+        <View style={styles.centered}>
+          <Text style={styles.bigGlyph}>⚠️</Text>
+          <Text variant="body" color={colors.textMuted} center style={styles.centeredCopy}>
             {error || 'Unable to load profile. Please try again.'}
           </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleRetry}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
+          <Button label="Retry" onPress={handleRetry} fullWidth={false} size="md" />
         </View>
       </SafeAreaView>
     );
@@ -336,288 +332,352 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
 
   if (isLoading && !profileUser) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <View style={styles.headerBar}>
-          <Text style={styles.headerTitle}>Profile</Text>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <View style={styles.topBar}>
+          <Text variant="h3" weight="semibold">Profile</Text>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1B2547" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text variant="bodySm" color={colors.textMuted} style={styles.centeredCopy}>
+            Loading profile…
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ─── Render: Profile Content ───
+  // ─── Render: Profile ───
 
   const displayUser = profileUser ?? user;
   const wp = workerProfile ?? displayUser?.workerProfile;
+  const initial = displayUser?.name?.charAt(0)?.toUpperCase() ?? '?';
+
+  /** A read-only label/value pair, or its editable counterpart. */
+  const InfoRow = ({
+    label,
+    value,
+    editing,
+    onChangeText,
+    placeholder,
+    keyboardType,
+  }: {
+    label: string;
+    value: string;
+    editing?: boolean;
+    onChangeText?: (t: string) => void;
+    placeholder?: string;
+    keyboardType?: 'default' | 'phone-pad';
+  }) => (
+    <View style={styles.infoRow}>
+      <Text variant="caption" weight="medium" color={colors.textFaint} style={styles.infoLabel}>
+        {label.toUpperCase()}
+      </Text>
+      {editing && onChangeText ? (
+        <TextInput
+          style={styles.inlineInput}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textFaint}
+          keyboardType={keyboardType ?? 'default'}
+        />
+      ) : (
+        <Text variant="body" weight="medium">
+          {value || '—'}
+        </Text>
+      )}
+    </View>
+  );
+
+  /** Navigational row in the Figma "Personal Info" menu. */
+  const MenuRow = ({
+    glyph,
+    label,
+    onPress,
+  }: {
+    glyph: string;
+    label: string;
+    onPress?: () => void;
+  }) => (
+    <TouchableOpacity
+      style={styles.menuRow}
+      activeOpacity={onPress ? 0.7 : 1}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+    >
+      <View style={styles.menuIcon}>
+        <Text style={styles.menuGlyph}>{glyph}</Text>
+      </View>
+      <Text variant="body" style={styles.menuLabel}>
+        {label}
+      </Text>
+      <Text style={styles.menuChevron}>›</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
-      {/* Header */}
-      <View style={styles.headerBar}>
-        <Text style={styles.headerTitle}>Profile</Text>
-        {!isEditing && (
-          <TouchableOpacity onPress={startEditing} activeOpacity={0.7}>
-            <Text style={styles.editLink}>Edit</Text>
-          </TouchableOpacity>
-        )}
-        {isEditing && (
-          <TouchableOpacity onPress={cancelEditing} activeOpacity={0.7}>
-            <Text style={styles.cancelLink}>Cancel</Text>
-          </TouchableOpacity>
-        )}
+      {/* ── Top bar ── */}
+      <View style={styles.topBar}>
+        <Text variant="h3" weight="semibold">
+          Profile
+        </Text>
+        <TouchableOpacity
+          onPress={isEditing ? cancelEditing : startEditing}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+        >
+          <Text
+            variant="bodySm"
+            weight="semibold"
+            color={isEditing ? colors.danger : colors.secondary}
+          >
+            {isEditing ? 'Cancel' : 'Edit'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Profile Photo (Worker) */}
-        {role === 'worker' && (
-          <View style={styles.photoSection}>
-            <View style={styles.avatarContainer}>
-              {wp?.profilePhoto ? (
-                <Image source={{ uri: wp.profilePhoto }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarInitial}>
-                    {displayUser?.name?.charAt(0)?.toUpperCase() ?? '?'}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={handlePhotoUpload}
-              disabled={isUploading}
-              activeOpacity={0.7}
-            >
-              {isUploading ? (
-                <ActivityIndicator size="small" color="#1B2547" />
-              ) : (
-                <Text style={styles.uploadButtonText}>Change Photo</Text>
-              )}
-            </TouchableOpacity>
-
-            {photoError && (
-              <Text style={styles.photoErrorText}>{photoError}</Text>
-            )}
-          </View>
-        )}
-
-        {/* Organizer Photo placeholder */}
-        {role === 'organizer' && (
-          <View style={styles.photoSection}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitial}>
-                  {displayUser?.name?.charAt(0)?.toUpperCase() ?? '?'}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* ── Identity ── */}
+        <View style={styles.identity}>
+          <View style={styles.avatarWrap}>
+            {wp?.profilePhoto ? (
+              <Image source={{ uri: wp.profilePhoto }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text variant="hero" weight="bold" color={colors.textOnPrimary}>
+                  {initial}
                 </Text>
               </View>
-            </View>
-          </View>
-        )}
-
-        {/* Success Message */}
-        {submitSuccess && (
-          <View style={styles.successBanner}>
-            <Text style={styles.successText}>Profile updated successfully!</Text>
-          </View>
-        )}
-
-        {/* Submit Error */}
-        {submitError && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorBannerText}>{submitError}</Text>
-          </View>
-        )}
-
-        {/* Basic Info Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
-
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Name</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={editName}
-                onChangeText={setEditName}
-                placeholder="Enter name"
-                placeholderTextColor="#999"
-              />
-            ) : (
-              <Text style={styles.fieldValue}>{displayUser?.name ?? '—'}</Text>
             )}
+
+            {role === 'worker' ? (
+              <TouchableOpacity
+                style={styles.avatarBadge}
+                onPress={handlePhotoUpload}
+                disabled={isUploading}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Change photo"
+              >
+                {isUploading ? (
+                  <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                ) : (
+                  <Text style={styles.avatarBadgeGlyph}>📷</Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
           </View>
 
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Email</Text>
-            <Text style={styles.fieldValue}>{displayUser?.email ?? '—'}</Text>
-          </View>
+          <Text variant="h2" weight="bold" style={styles.identityName}>
+            {displayUser?.name ?? '—'}
+          </Text>
+          <Text variant="bodySm" color={colors.textMuted}>
+            {displayUser?.email ?? ''}
+          </Text>
 
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Phone</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={editPhone}
-                onChangeText={setEditPhone}
-                placeholder="Enter phone"
-                placeholderTextColor="#999"
-                keyboardType="phone-pad"
-              />
-            ) : (
-              <Text style={styles.fieldValue}>{displayUser?.phone ?? '—'}</Text>
-            )}
-          </View>
-
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Role</Text>
-            <Text style={styles.fieldValue}>
-              {displayUser?.role
-                ? displayUser.role.charAt(0).toUpperCase() + displayUser.role.slice(1)
-                : '—'}
+          {photoError ? (
+            <Text variant="caption" color={colors.danger} style={styles.photoError}>
+              {photoError}
             </Text>
-          </View>
+          ) : null}
         </View>
 
-        {/* Worker-specific section */}
-        {role === 'worker' && wp && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Worker Details</Text>
+        {/* ── Banners ── */}
+        {submitSuccess ? (
+          <View style={[styles.banner, styles.bannerSuccess]}>
+            <Text variant="bodySm" color={colors.success}>
+              Profile updated successfully
+            </Text>
+          </View>
+        ) : null}
 
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Skills</Text>
-              <Text style={styles.fieldValue}>
-                {wp.skills?.length ? wp.skills.join(', ') : '—'}
+        {submitError ? (
+          <View style={[styles.banner, styles.bannerError]}>
+            <Text variant="bodySm" color={colors.danger}>
+              {submitError}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* ── Personal info ── */}
+        <View style={styles.sectionBar}>
+          <Text variant="body" weight="semibold" color={colors.textOnPrimary}>
+            Personal Info
+          </Text>
+        </View>
+
+        <Card style={styles.card} padded={false}>
+          <InfoRow
+            label="Name"
+            value={isEditing ? editName : displayUser?.name ?? ''}
+            editing={isEditing}
+            onChangeText={setEditName}
+            placeholder="Enter name"
+          />
+          <View style={styles.divider} />
+          <InfoRow label="Email" value={displayUser?.email ?? ''} />
+          <View style={styles.divider} />
+          <InfoRow
+            label="Phone"
+            value={isEditing ? editPhone : displayUser?.phone ?? ''}
+            editing={isEditing}
+            onChangeText={setEditPhone}
+            placeholder="Enter phone"
+            keyboardType="phone-pad"
+          />
+          <View style={styles.divider} />
+          <InfoRow
+            label="Role"
+            value={
+              displayUser?.role
+                ? displayUser.role.charAt(0).toUpperCase() + displayUser.role.slice(1)
+                : ''
+            }
+          />
+        </Card>
+
+        {/* ── Worker details ── */}
+        {role === 'worker' && wp ? (
+          <>
+            <View style={styles.sectionBar}>
+              <Text variant="body" weight="semibold" color={colors.textOnPrimary}>
+                Worker Details
               </Text>
             </View>
 
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Experience</Text>
-              <Text style={styles.fieldValue}>{wp.experienceLevel ?? '—'}</Text>
-            </View>
+            <Card style={styles.card} padded={false}>
+              <InfoRow label="Skills" value={wp.skills?.length ? wp.skills.join(', ') : ''} />
+              <View style={styles.divider} />
+              <InfoRow label="Experience" value={wp.experienceLevel ?? ''} />
+              <View style={styles.divider} />
 
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Location</Text>
-              {isEditing ? (
-                <View style={{ flex: 1 }}>
-                  <AddressAutocomplete
-                    onSelect={handlePlaceSelect}
-                    placeholder="Search for your city"
-                    citiesOnly
-                    wrapperStyle={styles.autocompleteWrapper}
-                    inputStyle={styles.autocompleteInput}
-                    dropdownStyle={styles.autocompleteDropdown}
-                    suggestionTextStyle={styles.autocompleteSuggestionText}
-                    placeholderTextColor="#999"
-                  />
-                  <View style={styles.locationRow}>
-                    <TextInput
-                      style={[styles.input, styles.locationInput]}
-                      value={editCity}
-                      onChangeText={setEditCity}
-                      placeholder="City"
-                      placeholderTextColor="#999"
+              <View style={styles.infoRow}>
+                <Text variant="caption" weight="medium" color={colors.textFaint} style={styles.infoLabel}>
+                  LOCATION
+                </Text>
+                {isEditing ? (
+                  <View>
+                    <AddressAutocomplete
+                      onSelect={handlePlaceSelect}
+                      placeholder="Search for your city"
+                      citiesOnly
+                      wrapperStyle={styles.autocompleteWrapper}
+                      inputStyle={styles.autocompleteInput}
+                      dropdownStyle={styles.autocompleteDropdown}
+                      suggestionTextStyle={styles.autocompleteSuggestionText}
+                      placeholderTextColor={colors.textFaint}
                     />
-                    <TextInput
-                      style={[styles.input, styles.locationInput]}
-                      value={editState}
-                      onChangeText={setEditState}
-                      placeholder="State"
-                      placeholderTextColor="#999"
-                    />
+                    <View style={styles.locationRow}>
+                      <TextInput
+                        style={[styles.inlineInput, styles.locationInput]}
+                        value={editCity}
+                        onChangeText={setEditCity}
+                        placeholder="City"
+                        placeholderTextColor={colors.textFaint}
+                      />
+                      <TextInput
+                        style={[styles.inlineInput, styles.locationInput]}
+                        value={editState}
+                        onChangeText={setEditState}
+                        placeholder="State"
+                        placeholderTextColor={colors.textFaint}
+                      />
+                    </View>
                   </View>
-                </View>
-              ) : (
-                <Text style={styles.fieldValue}>
-                  {[wp.location?.city, wp.location?.state].filter(Boolean).join(', ') || '—'}
-                </Text>
-              )}
-            </View>
+                ) : (
+                  <Text variant="body" weight="medium">
+                    {[wp.location?.city, wp.location?.state].filter(Boolean).join(', ') || '—'}
+                  </Text>
+                )}
+              </View>
 
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Rating</Text>
-              <Text style={styles.fieldValue}>
-                ⭐ {wp.ratingAvg?.toFixed(1) ?? '0.0'} ({wp.ratingCount ?? 0} reviews)
+              <View style={styles.divider} />
+              <InfoRow
+                label="Rating"
+                value={`⭐ ${wp.ratingAvg?.toFixed(1) ?? '0.0'} (${wp.ratingCount ?? 0} reviews)`}
+              />
+              <View style={styles.divider} />
+              <InfoRow
+                label="Total Earnings"
+                value={`₹${wp.totalEarnings?.toLocaleString('en-IN') ?? '0'}`}
+              />
+            </Card>
+          </>
+        ) : null}
+
+        {/* ── Organizer details ── */}
+        {role === 'organizer' ? (
+          <>
+            <View style={styles.sectionBar}>
+              <Text variant="body" weight="semibold" color={colors.textOnPrimary}>
+                Organizer Details
               </Text>
             </View>
 
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Total Earnings</Text>
-              <Text style={styles.fieldValue}>₹{wp.totalEarnings?.toLocaleString('en-IN') ?? '0'}</Text>
-            </View>
-          </View>
-        )}
+            <Card style={styles.card} padded={false}>
+              <InfoRow
+                label="Company"
+                value={isEditing ? editCompanyName : displayUser?.organizerProfile?.companyName ?? ''}
+                editing={isEditing}
+                onChangeText={setEditCompanyName}
+                placeholder="Company name"
+              />
+              <View style={styles.divider} />
+              <InfoRow
+                label="Rating"
+                value={`⭐ ${displayUser?.organizerProfile?.ratingAvg?.toFixed(1) ?? '0.0'} (${
+                  displayUser?.organizerProfile?.ratingCount ?? 0
+                } reviews)`}
+              />
+            </Card>
+          </>
+        ) : null}
 
-        {/* Organizer-specific section */}
-        {role === 'organizer' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Organizer Details</Text>
+        {/* ── Quick links ── */}
+        {!isEditing ? (
+          <Card style={styles.card} padded={false}>
+            <MenuRow
+              glyph="🧾"
+              label={role === 'worker' ? 'My Applications' : 'My Events'}
+              onPress={() =>
+                router.push(role === 'worker' ? '/(worker)/applications' : '/(organizer)/events')
+              }
+            />
+            <View style={styles.divider} />
+            <MenuRow
+              glyph="💳"
+              label="Wallet"
+              onPress={() =>
+                router.push(role === 'worker' ? '/(worker)/wallet' : '/(organizer)/wallet')
+              }
+            />
+          </Card>
+        ) : null}
 
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Company</Text>
-              {isEditing ? (
-                <TextInput
-                  style={styles.input}
-                  value={editCompanyName}
-                  onChangeText={setEditCompanyName}
-                  placeholder="Company name"
-                  placeholderTextColor="#999"
-                />
-              ) : (
-                <Text style={styles.fieldValue}>
-                  {displayUser?.organizerProfile?.companyName ?? '—'}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Rating</Text>
-              <Text style={styles.fieldValue}>
-                ⭐ {displayUser?.organizerProfile?.ratingAvg?.toFixed(1) ?? '0.0'} (
-                {displayUser?.organizerProfile?.ratingCount ?? 0} reviews)
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Submit Button (Edit Mode) */}
-        {isEditing && (
-          <TouchableOpacity
-            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+        {/* ── Actions ── */}
+        {isEditing ? (
+          <Button
+            label="Save Changes"
             onPress={handleSubmit}
-            disabled={isSubmitting}
-            activeOpacity={0.7}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.submitButtonText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {/* Logout */}
-        {!isEditing && (
-          <TouchableOpacity
-            style={styles.logoutButton}
+            loading={isSubmitting}
+            style={styles.action}
+          />
+        ) : (
+          <Button
+            label="Log Out"
+            variant="outline"
+            style={styles.action}
             onPress={async () => {
               const { logout } = useAuthStore.getState();
               await logout();
               router.replace('/(auth)/login');
             }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.logoutButtonText}>Log Out</Text>
-          </TouchableOpacity>
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -629,250 +689,140 @@ export default ProfileScreen;
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  headerBar: {
-    backgroundColor: '#1B2547',
-    paddingTop: 16,
-    paddingBottom: 18,
-    paddingHorizontal: 20,
+  safe: { flex: 1, backgroundColor: colors.background },
+
+  topBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  editLink: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cancelLink: {
-    color: '#FF6B6B',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  scrollContent: {
-    paddingBottom: 40,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
   },
 
-  // Photo Section
-  photoSection: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  avatarContainer: {
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E8EAF0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitial: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#1B2547',
-  },
-  uploadButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#1B2547',
-  },
-  uploadButtonText: {
-    color: '#1B2547',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  photoErrorText: {
-    color: '#F44336',
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: 'center',
-  },
+  scrollContent: { paddingBottom: spacing.xxxl },
 
-  // Success/Error Banners
-  successBanner: {
-    backgroundColor: '#E8F5E9',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 8,
-  },
-  successText: {
-    color: '#2E7D32',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  errorBanner: {
-    backgroundColor: '#FFEBEE',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 8,
-  },
-  errorBannerText: {
-    color: '#C62828',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-
-  // Section
-  section: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    backgroundColor: '#F8F9FC',
-    borderRadius: 14,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1B2547',
-    marginBottom: 16,
-  },
-
-  // Field Rows
-  fieldRow: {
-    marginBottom: 14,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#888888',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  fieldValue: {
-    fontSize: 15,
-    color: '#222222',
-    fontWeight: '500',
-  },
-
-  // Inputs
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: '#222222',
-  },
-  locationRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  locationInput: {
+  centered: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xxxl,
+    gap: spacing.md,
   },
-  autocompleteWrapper: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#DDD',
-    marginBottom: 8,
+  centeredCopy: { marginBottom: spacing.sm },
+  bigGlyph: { fontSize: 40 },
+
+  /* ── Identity ── */
+  identity: { alignItems: 'center', paddingVertical: spacing.xl },
+  avatarWrap: { marginBottom: spacing.md },
+  avatar: { width: 104, height: 104, borderRadius: 52 },
+  avatarFallback: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.background,
+  },
+  avatarBadgeGlyph: { fontSize: 14 },
+  identityName: { marginBottom: 2 },
+  photoError: { marginTop: spacing.sm },
+
+  /* ── Banners ── */
+  banner: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+  },
+  bannerSuccess: { backgroundColor: colors.successBg },
+  bannerError: { backgroundColor: colors.dangerBg },
+
+  /* ── Sections ── */
+  sectionBar: {
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+  },
+  card: { marginHorizontal: spacing.xl, marginTop: spacing.md },
+
+  infoRow: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  infoLabel: { marginBottom: spacing.xs, letterSpacing: 0.6 },
+  divider: { height: 1, backgroundColor: colors.border, marginHorizontal: spacing.lg },
+
+  inlineInput: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.body.fontSize,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  locationRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  locationInput: { flex: 1 },
+
+  autocompleteWrapper: { marginBottom: spacing.xs },
   autocompleteInput: {
-    color: '#222222',
+    fontFamily: fonts.bodyRegular,
+    fontSize: typeScale.body.fontSize,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.card,
   },
   autocompleteDropdown: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#DDD',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
   },
   autocompleteSuggestionText: {
-    color: '#222222',
+    fontFamily: fonts.bodyRegular,
+    fontSize: typeScale.bodySm.fontSize,
+    color: colors.text,
   },
 
-  // Submit Button
-  submitButton: {
-    backgroundColor: '#1B2547',
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 12,
-    paddingVertical: 14,
+  /* ── Menu ── */
+  menuRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
   },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Logout
-  logoutButton: {
-    marginHorizontal: 16,
-    marginTop: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    paddingVertical: 14,
+  menuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
     alignItems: 'center',
-  },
-  logoutButtonText: {
-    color: '#F44336',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Loading
-  loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666666',
-  },
+  menuGlyph: { fontSize: 16 },
+  menuLabel: { flex: 1 },
+  menuChevron: { fontSize: 22, color: colors.textFaint, lineHeight: 24 },
 
-  // Error
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  errorIcon: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  errorMessage: {
-    fontSize: 15,
-    color: '#444444',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: '#1B2547',
-    borderRadius: 10,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  action: { marginHorizontal: spacing.xl, marginTop: spacing.xxl },
 });

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useDebounce } from '../hooks/useDebounce';
 import { fetchPlaceDetails, fetchPlaceSuggestions, PlaceDetails, PlaceSuggestion } from '../services/places';
+import { colors } from '../theme';
 
 interface AddressAutocompleteProps {
   onSelect: (details: PlaceDetails) => void;
@@ -33,7 +34,7 @@ export default function AddressAutocomplete({
   editable = true,
   wrapperStyle,
   inputStyle,
-  placeholderTextColor = '#6B7280',
+  placeholderTextColor = colors.textFaint,
   dropdownStyle,
   suggestionStyle,
   suggestionTextStyle,
@@ -124,26 +125,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2A3350',
+    borderColor: colors.border,
     borderRadius: 12,
     height: 48,
     paddingHorizontal: 14,
-    backgroundColor: '#1C2340',
+    backgroundColor: colors.card,
   },
-  input: { flex: 1, fontSize: 14, color: '#FFFFFF' },
+  input: { flex: 1, fontSize: 14, color: colors.text },
   dropdown: {
     marginTop: 4,
     borderWidth: 1,
-    borderColor: '#2A3350',
+    borderColor: colors.border,
     borderRadius: 12,
-    backgroundColor: '#1C2340',
+    backgroundColor: colors.card,
     overflow: 'hidden',
   },
   suggestion: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A3350',
+    borderBottomColor: colors.border,
   },
-  suggestionText: { fontSize: 13, color: '#FFFFFF' },
+  suggestionText: { fontSize: 13, color: colors.text },
 });

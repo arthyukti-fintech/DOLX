@@ -5,13 +5,13 @@ import {
     FlatList,
     StatusBar,
     StyleSheet,
-    Text,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, ImagePlaceholder, StatusPill, Text } from '../../components/ui';
 import { useEventStore } from '../../stores/eventStore';
-import { Event, EventStatus } from '../../types';
+import { colors, radius, spacing } from '../../theme';
+import { Event } from '../../types';
 
 // ─── Helpers ───
 
@@ -25,36 +25,6 @@ function formatDate(dateStr: string): string {
     });
   } catch {
     return dateStr;
-  }
-}
-
-function getStatusColor(status: EventStatus): string {
-  switch (status) {
-    case 'active':
-      return '#22C55E';
-    case 'completed':
-      return '#6366F1';
-    case 'draft':
-      return '#F59E0B';
-    case 'cancelled':
-      return '#EF4444';
-    default:
-      return '#9CA3AF';
-  }
-}
-
-function getStatusBg(status: EventStatus): string {
-  switch (status) {
-    case 'active':
-      return '#052E16';
-    case 'completed':
-      return '#1E1B4B';
-    case 'draft':
-      return '#451A03';
-    case 'cancelled':
-      return '#450A0A';
-    default:
-      return '#1C2340';
   }
 }
 
@@ -74,126 +44,89 @@ export default function MyEventsScreen() {
     fetchMyEvents();
   }, [fetchMyEvents]);
 
-  const handleEventPress = (eventId: string) => {
-    router.push(`/event/${eventId}`);
-  };
-
-  // ─── Render: Event Card ───
-
   const renderEventCard = ({ item }: { item: Event }) => (
-    <TouchableOpacity
-      style={styles.eventCard}
-      onPress={() => handleEventPress(item._id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.eventTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusBg(item.status) },
-          ]}
-        >
-          <Text
-            style={[styles.statusText, { color: getStatusColor(item.status) }]}
-          >
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-          </Text>
-        </View>
-      </View>
+    <Card style={styles.card} padded={false} onPress={() => router.push(`/event/${item._id}`)}>
+      <ImagePlaceholder seed={item.eventType} glyph="🎪" rounded="md" style={styles.thumb} />
 
-      <View style={styles.cardBody}>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardIcon}>📅</Text>
-          <Text style={styles.cardLabel}>{formatDate(item.date)}</Text>
+      <View style={styles.body}>
+        <View style={styles.topRow}>
+          <Text variant="body" weight="semibold" numberOfLines={1} style={styles.title}>
+            {item.title}
+          </Text>
+          <StatusPill status={item.status} />
         </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardIcon}>🏷️</Text>
-          <Text style={styles.cardLabel}>{item.eventType}</Text>
-        </View>
+
+        <Text variant="caption" color={colors.textMuted}>
+          📅 {formatDate(item.date)}
+        </Text>
+        <Text variant="caption" color={colors.textMuted}>
+          🏷️ {item.eventType}
+        </Text>
         {item.location?.city ? (
-          <View style={styles.cardRow}>
-            <Text style={styles.cardIcon}>📍</Text>
-            <Text style={styles.cardLabel}>{item.location.city}</Text>
-          </View>
+          <Text variant="caption" color={colors.textMuted}>
+            📍 {item.location.city}
+          </Text>
         ) : null}
       </View>
-    </TouchableOpacity>
+    </Card>
   );
 
-  // ─── Render: Empty State ───
-
-  const renderEmpty = () => {
-    if (isLoading) return null;
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>📋</Text>
-        <Text style={styles.emptyTitle}>No Events Yet</Text>
-        <Text style={styles.emptySubtitle}>
-          Create your first event to start hiring staff
-        </Text>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => router.push('/(organizer)/create-event')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.createButtonText}>+ Create Event</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  // ─── Render: Error State ───
-
-  if (error && !isLoading && events.length === 0) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Events</Text>
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorTitle}>Failed to load events</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleRetry}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ─── Main Render ───
-
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Events</Text>
+        <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
+          My Events
+        </Text>
+        <Text variant="bodySm" color="rgba(249,244,244,0.7)" style={styles.headerSub}>
+          {events.length} {events.length === 1 ? 'event' : 'events'} total
+        </Text>
       </View>
 
-      {isLoading && events.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading events...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={events}
-          keyExtractor={(item) => item._id}
-          renderItem={renderEventCard}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmpty}
-        />
-      )}
+      <View style={styles.content}>
+        {error && !isLoading && events.length === 0 ? (
+          <Card elevation="flat" style={styles.stateCard}>
+            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+              {error}
+            </Text>
+            <Button label="Retry" onPress={handleRetry} size="sm" fullWidth={false} />
+          </Card>
+        ) : isLoading && events.length === 0 ? (
+          <Card elevation="flat" style={styles.stateCard}>
+            <ActivityIndicator color={colors.primary} />
+            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+              Loading your events…
+            </Text>
+          </Card>
+        ) : (
+          <FlatList
+            data={events}
+            keyExtractor={(item) => item._id}
+            renderItem={renderEventCard}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <Card elevation="flat" style={styles.stateCard}>
+                <Text style={styles.stateGlyph}>📋</Text>
+                <Text variant="body" weight="semibold" center>
+                  No events yet
+                </Text>
+                <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+                  Create your first event to start hiring staff.
+                </Text>
+                <Button
+                  label="Create Event"
+                  onPress={() => router.push('/(organizer)/create-event')}
+                  size="sm"
+                  fullWidth={false}
+                />
+              </Card>
+            }
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -201,121 +134,44 @@ export default function MyEventsScreen() {
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0D0D1A' },
+  safe: { flex: 1, backgroundColor: colors.primary },
 
-  /* Header */
   header: {
-    backgroundColor: '#1B2547',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A3350',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    borderBottomLeftRadius: radius.xxl,
+    borderBottomRightRadius: radius.xxl,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+  headerSub: { marginTop: 2 },
 
-  /* List */
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
+  content: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl },
+  listContent: { paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
 
-  /* Event Card */
-  eventCard: {
-    backgroundColor: '#1C2340',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#2A3350',
-  },
-  cardHeader: {
+  card: {
     flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  thumb: { width: 72, height: 72 },
+  body: { flex: 1, gap: 2 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginBottom: 2,
   },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    flex: 1,
-    marginRight: 10,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  cardBody: { gap: 6 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardIcon: { fontSize: 14 },
-  cardLabel: { fontSize: 13, color: '#9CA3AF' },
+  title: { flex: 1 },
 
-  /* Loading */
-  loadingContainer: {
-    flex: 1,
+  stateCard: {
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
+    gap: spacing.sm,
+    paddingVertical: spacing.xxxl,
+    marginTop: spacing.xl,
   },
-  loadingText: { fontSize: 14, color: '#9CA3AF' },
-
-  /* Error */
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 8,
-  },
-  errorIcon: { fontSize: 40, marginBottom: 8 },
-  errorTitle: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
-  errorMessage: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-  },
-  retryButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-
-  /* Empty */
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 32,
-    gap: 8,
-  },
-  emptyIcon: { fontSize: 48, marginBottom: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  createButton: {
-    borderRadius: 12,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-  },
-  createButtonText: { color: '#A5B4FC', fontSize: 14, fontWeight: '600' },
+  stateGlyph: { fontSize: 34 },
+  stateCopy: { marginBottom: spacing.xs },
 });

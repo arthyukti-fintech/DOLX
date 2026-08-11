@@ -1,17 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
-} from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import RazorpayCheckout from 'react-native-razorpay';
+import { Button, Card, ScreenHeader, StatusPill, Text } from '../../components/ui';
 import { isApiError } from '../../services/api';
 import { usePaymentStore } from '../../stores/paymentStore';
-import { Payment, PaymentStatus } from '../../types';
+import { colors, radius, spacing } from '../../theme';
+import { Payment } from '../../types';
 
 // ─── Helpers ───
 
@@ -28,38 +24,29 @@ function formatDate(isoString: string): string {
   });
 }
 
-function getStatusColor(status: PaymentStatus): string {
-  switch (status) {
-    case 'pending':
-      return '#ff9800';
-    case 'held':
-      return '#1a73e8';
-    case 'released':
-      return '#2e7d32';
-    case 'refunded':
-      return '#9c27b0';
-    case 'failed':
-      return '#d32f2f';
-    default:
-      return '#666';
-  }
-}
-
-function getStatusLabel(status: PaymentStatus): string {
-  switch (status) {
-    case 'pending':
-      return 'Pending';
-    case 'held':
-      return 'Escrow Held';
-    case 'released':
-      return 'Released';
-    case 'refunded':
-      return 'Refunded';
-    case 'failed':
-      return 'Failed';
-    default:
-      return status;
-  }
+function InfoRow({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <View style={styles.infoRow}>
+      <Text variant="bodySm" color={colors.textFaint} style={styles.infoLabel}>
+        {label}
+      </Text>
+      <Text
+        variant={emphasis ? 'body' : 'bodySm'}
+        weight={emphasis ? 'bold' : 'medium'}
+        style={styles.infoValue}
+      >
+        {value}
+      </Text>
+    </View>
+  );
 }
 
 // ─── Component ───
@@ -68,23 +55,28 @@ export default function PaymentFlowScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  const { transactions, isLoading, error, fundEscrow, confirmEscrow, releasePayment, fetchTransactions } =
-    usePaymentStore();
+  const {
+    transactions,
+    isLoading,
+    error,
+    fundEscrow,
+    confirmEscrow,
+    releasePayment,
+    fetchTransactions,
+  } = usePaymentStore();
 
   const [isFunding, setIsFunding] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Find the payment from store transactions
   const payment: Payment | undefined = transactions.find((t) => t._id === id);
 
   useEffect(() => {
-    // Fetch transactions to ensure we have the latest data
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // ─── Fund Escrow → Razorpay Checkout ───
+  // ─── Fund escrow → Razorpay checkout ───
   const handleFundEscrow = useCallback(async () => {
     if (!id || isFunding) return;
 
@@ -95,29 +87,25 @@ export default function PaymentFlowScreen() {
     const result = await fundEscrow(id);
 
     if (isApiError(result)) {
-      // Fund request failed — show error, don't launch Razorpay
+      // The order was never created, so there is nothing to check out against.
       setLocalError(result.message);
       setIsFunding(false);
       return;
     }
 
-    // Fund request succeeded — open Razorpay checkout with order details
     const order = result;
 
     try {
-      const razorpayOptions = {
+      const razorpayResponse = await RazorpayCheckout.open({
         description: 'DOLX Escrow Payment',
         currency: order.currency,
         key: order.keyId,
-        amount: order.amount, // Amount in paise from backend
+        amount: order.amount,
         order_id: order.orderId,
         name: 'DOLX',
-        theme: { color: '#1a73e8' },
-      };
+        theme: { color: colors.primary },
+      });
 
-      const razorpayResponse = await RazorpayCheckout.open(razorpayOptions);
-
-      // Razorpay success callback — call confirmEscrow
       const confirmResult = await confirmEscrow(id, {
         razorpayOrderId: razorpayResponse.razorpay_order_id,
         razorpayPaymentId: razorpayResponse.razorpay_payment_id,
@@ -125,26 +113,24 @@ export default function PaymentFlowScreen() {
       });
 
       if (confirmResult) {
-        // confirmEscrow returned an error
         setLocalError(confirmResult.message);
       } else {
-        setSuccessMessage('Payment confirmed! Funds are now held in escrow.');
-        // Refresh transactions to get updated status
+        setSuccessMessage('Payment confirmed. Funds are now held in escrow.');
         fetchTransactions();
       }
     } catch (razorpayError: any) {
-      // Razorpay failure/cancel — show error, don't call confirm
-      const errorMessage =
+      // Covers both gateway failures and the user dismissing checkout.
+      setLocalError(
         razorpayError?.description ||
-        razorpayError?.error?.description ||
-        'Payment was not completed. Please try again.';
-      setLocalError(errorMessage);
+          razorpayError?.error?.description ||
+          'Payment was not completed. Please try again.'
+      );
     } finally {
       setIsFunding(false);
     }
   }, [id, isFunding, fundEscrow, confirmEscrow, fetchTransactions]);
 
-  // ─── Release Payment ───
+  // ─── Release ───
   const handleReleasePayment = useCallback(async () => {
     if (!id || isReleasing) return;
 
@@ -155,416 +141,200 @@ export default function PaymentFlowScreen() {
     const result = await releasePayment(id);
 
     if (result) {
-      // Release failed
       setLocalError(result.message);
     } else {
-      setSuccessMessage('Payment released to worker successfully!');
-      // Refresh transactions to get updated status
+      setSuccessMessage('Payment released to the worker.');
       fetchTransactions();
     }
 
     setIsReleasing(false);
   }, [id, isReleasing, releasePayment, fetchTransactions]);
 
-  // ─── Loading State ───
+  // ─── Loading / error / missing ───
   if (isLoading && !payment) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Payment</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <ScreenHeader title="Payment" />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1a73e8" />
-          <Text style={styles.loadingText}>Loading payment details...</Text>
+          <Text variant="bodySm" color={colors.textMuted}>
+            Loading payment details…
+          </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
-  // ─── Error State (store-level) ───
-  if (error && !payment) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Payment</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable onPress={() => fetchTransactions()} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // ─── Payment Not Found ───
   if (!payment) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Payment</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <ScreenHeader title="Payment" />
         <View style={styles.centered}>
-          <Text style={styles.errorText}>Payment not found</Text>
-          <Pressable onPress={() => router.back()} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Go Back</Text>
-          </Pressable>
+          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+            {error || 'Payment not found'}
+          </Text>
+          <Button
+            label={error ? 'Retry' : 'Go Back'}
+            variant={error ? 'primary' : 'outline'}
+            onPress={error ? () => fetchTransactions() : () => router.back()}
+            size="sm"
+            fullWidth={false}
+          />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
-  // ─── Derive display values ───
   const jobName = typeof payment.job === 'object' ? payment.job.role : 'Job';
   const eventName = typeof payment.event === 'object' ? payment.event.title : 'Event';
   const canFund = payment.status === 'pending';
   const canRelease = payment.status === 'held';
 
   return (
-    <View style={styles.container}>
-      {/* Dark Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>←</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Payment</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <ScreenHeader title="Payment" />
 
       <ScrollView
-        style={styles.scrollView}
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Payment Info Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Payment Details</Text>
+        {/* ── Amount hero ── */}
+        <View style={styles.hero}>
+          <Text variant="caption" color="rgba(249,244,244,0.7)">
+            Total Amount
+          </Text>
+          <Text variant="hero" weight="bold" color={colors.textOnPrimary} style={styles.heroAmount}>
+            {formatAmount(payment.amount)}
+          </Text>
+          <StatusPill status={payment.status} />
+        </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Job Role</Text>
-            <Text style={styles.infoValue}>{jobName}</Text>
-          </View>
+        {/* ── Breakdown ── */}
+        <Card style={styles.card}>
+          <Text variant="h3" weight="semibold" style={styles.cardTitle}>
+            Payment Details
+          </Text>
+          <InfoRow label="Job role" value={jobName} />
+          <InfoRow label="Event" value={eventName} />
+          <InfoRow label="Amount" value={formatAmount(payment.amount)} />
+          <InfoRow
+            label="Commission"
+            value={`${formatAmount(payment.commissionAmount)} (${payment.commissionPercent}%)`}
+          />
+          <InfoRow label="Worker payout" value={formatAmount(payment.workerPayout)} emphasis />
+          <InfoRow label="Created" value={formatDate(payment.createdAt)} />
+          {payment.escrowHeldAt ? (
+            <InfoRow label="Escrow held" value={formatDate(payment.escrowHeldAt)} />
+          ) : null}
+          {payment.releasedAt ? (
+            <InfoRow label="Released" value={formatDate(payment.releasedAt)} />
+          ) : null}
+        </Card>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Event</Text>
-            <Text style={styles.infoValue}>{eventName}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Amount</Text>
-            <Text style={[styles.infoValue, styles.amountText]}>
-              {formatAmount(payment.amount)}
+        {/* ── Messages ── */}
+        {localError ? (
+          <View style={[styles.banner, styles.bannerError]}>
+            <Text variant="bodySm" color={colors.danger} center>
+              {localError}
             </Text>
           </View>
+        ) : null}
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Worker Payout</Text>
-            <Text style={styles.infoValue}>{formatAmount(payment.workerPayout)}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Commission</Text>
-            <Text style={styles.infoValue}>
-              {formatAmount(payment.commissionAmount)} ({payment.commissionPercent}%)
+        {successMessage ? (
+          <View style={[styles.banner, styles.bannerSuccess]}>
+            <Text variant="bodySm" weight="semibold" color={colors.success} center>
+              {successMessage}
             </Text>
           </View>
+        ) : null}
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Status</Text>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: `${getStatusColor(payment.status)}15` },
-              ]}
-            >
-              <Text style={[styles.statusText, { color: getStatusColor(payment.status) }]}>
-                {getStatusLabel(payment.status)}
+        {/* ── Actions ── */}
+        <View style={styles.actions}>
+          {canFund ? (
+            <Button label="Fund Escrow" onPress={handleFundEscrow} loading={isFunding} />
+          ) : null}
+
+          {canRelease ? (
+            <Button
+              label="Release Payment"
+              onPress={handleReleasePayment}
+              loading={isReleasing}
+            />
+          ) : null}
+
+          {payment.status === 'released' ? (
+            <View style={[styles.banner, styles.bannerSuccess]}>
+              <Text variant="bodySm" weight="semibold" color={colors.success} center>
+                ✓ Payment completed
               </Text>
             </View>
-          </View>
+          ) : null}
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Created</Text>
-            <Text style={styles.infoValue}>{formatDate(payment.createdAt)}</Text>
-          </View>
-
-          {payment.escrowHeldAt && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Escrow Held</Text>
-              <Text style={styles.infoValue}>{formatDate(payment.escrowHeldAt)}</Text>
+          {payment.status === 'failed' ? (
+            <View style={[styles.banner, styles.bannerError]}>
+              <Text variant="bodySm" weight="semibold" color={colors.danger} center>
+                Payment failed
+              </Text>
             </View>
-          )}
-
-          {payment.releasedAt && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Released</Text>
-              <Text style={styles.infoValue}>{formatDate(payment.releasedAt)}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Messages */}
-        {localError && (
-          <View style={styles.messageContainer}>
-            <Text style={styles.errorMessage}>{localError}</Text>
-          </View>
-        )}
-
-        {successMessage && (
-          <View style={styles.successContainer}>
-            <Text style={styles.successMessage}>{successMessage}</Text>
-          </View>
-        )}
-
-        {/* Action Buttons */}
-        <View style={styles.actionsSection}>
-          {canFund && (
-            <Pressable
-              style={[styles.actionButton, styles.fundButton, isFunding && styles.buttonDisabled]}
-              onPress={handleFundEscrow}
-              disabled={isFunding}
-            >
-              {isFunding ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={styles.actionButtonText}>Fund Escrow</Text>
-              )}
-            </Pressable>
-          )}
-
-          {canRelease && (
-            <Pressable
-              style={[
-                styles.actionButton,
-                styles.releaseButton,
-                isReleasing && styles.buttonDisabled,
-              ]}
-              onPress={handleReleasePayment}
-              disabled={isReleasing}
-            >
-              {isReleasing ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={styles.actionButtonText}>Release Payment</Text>
-              )}
-            </Pressable>
-          )}
-
-          {payment.status === 'released' && (
-            <View style={styles.completedContainer}>
-              <Text style={styles.completedText}>✓ Payment completed</Text>
-            </View>
-          )}
-
-          {payment.status === 'failed' && (
-            <View style={styles.failedContainer}>
-              <Text style={styles.failedText}>Payment failed</Text>
-            </View>
-          )}
+          ) : null}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: '#1a1a2e',
-    paddingTop: 56,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: spacing.xl, paddingBottom: 40 },
+
+  hero: {
     alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xxl,
+    borderRadius: radius.xl,
+    backgroundColor: colors.primary,
+    marginBottom: spacing.xl,
   },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  backText: {
-    color: '#ffffff',
-    fontSize: 20,
-  },
-  headerTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 36,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-  },
-  errorText: {
-    fontSize: 15,
-    color: '#d32f2f',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#1a73e8',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    marginBottom: 16,
-  },
+  heroAmount: { marginBottom: spacing.sm },
+
+  card: { marginBottom: spacing.lg },
+  cardTitle: { marginBottom: spacing.md },
   infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.border,
   },
-  infoLabel: {
-    fontSize: 14,
-    color: '#666',
+  infoLabel: { width: 120 },
+  infoValue: { flex: 1, textAlign: 'right' },
+
+  banner: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    marginBottom: spacing.md,
+  },
+  bannerError: { backgroundColor: colors.dangerBg },
+  bannerSuccess: { backgroundColor: colors.successBg },
+
+  actions: { marginTop: spacing.sm, gap: spacing.md },
+
+  centered: {
     flex: 1,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#1a1a2e',
-    fontWeight: '500',
-    flex: 1.5,
-    textAlign: 'right',
-  },
-  amountText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  messageContainer: {
-    backgroundColor: '#fce4ec',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 16,
-  },
-  errorMessage: {
-    color: '#c62828',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  successContainer: {
-    backgroundColor: '#e8f5e9',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 16,
-  },
-  successMessage: {
-    color: '#2e7d32',
-    fontSize: 14,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  actionsSection: {
-    marginTop: 8,
-  },
-  actionButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xxxl,
   },
-  fundButton: {
-    backgroundColor: '#1a73e8',
-  },
-  releaseButton: {
-    backgroundColor: '#2e7d32',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  actionButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  completedContainer: {
-    backgroundColor: '#e8f5e9',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  completedText: {
-    color: '#2e7d32',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  failedContainer: {
-    backgroundColor: '#fce4ec',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  failedText: {
-    color: '#c62828',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  stateGlyph: { fontSize: 38 },
+  stateCopy: { marginBottom: spacing.xs },
 });

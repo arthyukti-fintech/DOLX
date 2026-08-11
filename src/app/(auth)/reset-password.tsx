@@ -1,22 +1,28 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Input, OtpInput, ScreenHeader, Text } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
+import { colors, spacing } from '../../theme';
 
 type FieldErrors = Record<string, string>;
 
+/**
+ * "Enter Verification Code" from the Figma flow.
+ *
+ * The code entered here is the reset key the backend emails on
+ * forgot-password, so the boxed OTP entry maps onto a real credential
+ * rather than a decorative one.
+ */
 export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
 
@@ -24,12 +30,13 @@ export default function ResetPasswordScreen() {
   const [secretKey, setSecretKey] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [generalError, setGeneralError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const resetPassword = useAuthStore((state) => state.resetPassword);
+  const forgotPassword = useAuthStore((state) => state.forgotPassword);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   const clearFieldError = (field: string) => {
     if (fieldErrors[field]) {
@@ -45,7 +52,7 @@ export default function ResetPasswordScreen() {
     const errors: FieldErrors = {};
 
     if (!email.trim()) errors.email = 'Email is required';
-    if (!secretKey.trim()) errors.secretKey = 'Secret key is required';
+    if (!secretKey.trim()) errors.secretKey = 'Enter the code from your email';
     if (!newPassword.trim()) {
       errors.newPassword = 'New password is required';
     } else if (newPassword.trim().length < 8) {
@@ -79,145 +86,139 @@ export default function ResetPasswordScreen() {
     router.replace('/(auth)/login');
   };
 
+  const handleResend = async () => {
+    if (!email.trim() || resendState === 'sending') return;
+    setResendState('sending');
+    await forgotPassword(email.trim());
+    setResendState('sent');
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D1A" />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <ScreenHeader />
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.heading}>Reset Password</Text>
-          <Text style={styles.subheading}>
-            Enter the secret key we sent to your email, along with your new password.
+          <Text variant="h1" weight="bold">
+            Enter Verification{'\n'}Code
+          </Text>
+          <Text variant="bodySm" color={colors.textMuted} style={styles.subtitle}>
+            We&apos;ve sent a code to{' '}
+            <Text variant="bodySm" weight="semibold" color={colors.text}>
+              {email || 'your email'}
+            </Text>
+            . Enter it below to set a new password.
           </Text>
 
-          {generalError ? (
-            <View style={styles.generalErrorBox}>
-              <Text style={styles.generalErrorText}>{generalError}</Text>
-            </View>
+          {!params.email ? (
+            <Input
+              label="Email"
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={(t) => {
+                setEmail(t);
+                clearFieldError('email');
+              }}
+              editable={!isLoading}
+              error={fieldErrors.email}
+              containerStyle={styles.field}
+            />
           ) : null}
 
-          {/* Email */}
-          <View style={styles.fieldContainer}>
-            <View style={[styles.inputWrapper, fieldErrors.email ? styles.inputError : null]}>
-              <Text style={styles.inputIcon}>✉️</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#6B7280"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  clearFieldError('email');
-                }}
-              />
-            </View>
-            {fieldErrors.email ? <Text style={styles.errorText}>{fieldErrors.email}</Text> : null}
-          </View>
-
-          {/* Secret key - free-form: letters, digits, and symbols are all accepted */}
-          <View style={styles.fieldContainer}>
-            <View style={[styles.inputWrapper, fieldErrors.secretKey ? styles.inputError : null]}>
-              <Text style={styles.inputIcon}>🔒</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Secret Key"
-                placeholderTextColor="#6B7280"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={secretKey}
-                onChangeText={(text) => {
-                  setSecretKey(text);
-                  clearFieldError('secretKey');
-                }}
-              />
-            </View>
-            {fieldErrors.secretKey ? (
-              <Text style={styles.errorText}>{fieldErrors.secretKey}</Text>
-            ) : null}
-          </View>
-
-          {/* New Password - free-form: letters, digits, and symbols are all accepted */}
-          <View style={styles.fieldContainer}>
-            <View style={[styles.inputWrapper, fieldErrors.newPassword ? styles.inputError : null]}>
-              <Text style={styles.inputIcon}>🔑</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="New Password"
-                placeholderTextColor="#6B7280"
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={newPassword}
-                onChangeText={(text) => {
-                  setNewPassword(text);
-                  clearFieldError('newPassword');
-                }}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
-                <Text style={styles.eyeIcon}>{showPassword ? '👁' : '🙈'}</Text>
-              </TouchableOpacity>
-            </View>
-            {fieldErrors.newPassword ? (
-              <Text style={styles.errorText}>{fieldErrors.newPassword}</Text>
-            ) : null}
-          </View>
-
-          {/* Confirm Password */}
-          <View style={styles.fieldContainer}>
-            <View style={[styles.inputWrapper, fieldErrors.confirmPassword ? styles.inputError : null]}>
-              <Text style={styles.inputIcon}>🔑</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm New Password"
-                placeholderTextColor="#6B7280"
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  clearFieldError('confirmPassword');
-                }}
-              />
-            </View>
-            {fieldErrors.confirmPassword ? (
-              <Text style={styles.errorText}>{fieldErrors.confirmPassword}</Text>
-            ) : null}
-          </View>
+          <OtpInput
+            value={secretKey}
+            onChange={(v) => {
+              setSecretKey(v);
+              clearFieldError('secretKey');
+            }}
+            length={6}
+            hasError={!!fieldErrors.secretKey}
+            style={styles.otp}
+          />
+          {fieldErrors.secretKey ? (
+            <Text variant="caption" color={colors.danger} center style={styles.otpError}>
+              {fieldErrors.secretKey}
+            </Text>
+          ) : null}
 
           <TouchableOpacity
-            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
-            activeOpacity={0.85}
-            onPress={handleSubmit}
-            disabled={isLoading}
+            onPress={handleResend}
+            disabled={resendState === 'sending'}
+            style={styles.resend}
+            activeOpacity={0.7}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.submitButtonText}>Reset Password</Text>
-            )}
+            <Text variant="bodySm" color={colors.textMuted}>
+              Didn&apos;t get a code?{' '}
+            </Text>
+            <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+              {resendState === 'sending'
+                ? 'Sending…'
+                : resendState === 'sent'
+                  ? 'Sent'
+                  : 'Resend'}
+            </Text>
           </TouchableOpacity>
 
-          <View style={styles.loginRow}>
-            <Text style={styles.loginText}>Need a new code? </Text>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => router.replace('/(auth)/forgot-password')}>
-              <Text style={styles.loginLink}>Resend</Text>
+          <Input
+            label="New password"
+            placeholder="At least 8 characters"
+            isPassword
+            value={newPassword}
+            onChangeText={(t) => {
+              setNewPassword(t);
+              clearFieldError('newPassword');
+            }}
+            editable={!isLoading}
+            error={fieldErrors.newPassword}
+            containerStyle={styles.field}
+          />
+
+          <Input
+            label="Confirm password"
+            placeholder="Re-enter your new password"
+            isPassword
+            value={confirmPassword}
+            onChangeText={(t) => {
+              setConfirmPassword(t);
+              clearFieldError('confirmPassword');
+            }}
+            editable={!isLoading}
+            error={fieldErrors.confirmPassword}
+            containerStyle={styles.field}
+          />
+
+          {generalError ? (
+            <Text variant="bodySm" color={colors.danger} center style={styles.generalError}>
+              {generalError}
+            </Text>
+          ) : null}
+
+          <Button
+            label="Reset Password"
+            onPress={handleSubmit}
+            loading={isLoading}
+            style={styles.cta}
+          />
+
+          <View style={styles.footer}>
+            <Text variant="bodySm" color={colors.textMuted}>
+              Remembered it?{' '}
+            </Text>
+            <TouchableOpacity onPress={() => router.replace('/(auth)/login')} activeOpacity={0.7}>
+              <Text variant="bodySm" weight="semibold" color={colors.secondary}>
+                Log In
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -227,73 +228,26 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: '#0D0D1A' },
   scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: spacing.xxl,
     paddingBottom: 40,
   },
-
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1C2340',
-    borderWidth: 1,
-    borderColor: '#2A3350',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  backArrow: { fontSize: 20, color: '#FFFFFF', lineHeight: 24 },
-
-  heading: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 6 },
-  subheading: { fontSize: 13, color: '#9CA3AF', marginBottom: 28, lineHeight: 19 },
-
-  generalErrorBox: {
-    backgroundColor: '#3B1A1A',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#7F1D1D',
-  },
-  generalErrorText: { fontSize: 13, color: '#FCA5A5' },
-
-  fieldContainer: { marginBottom: 14 },
-  inputWrapper: {
+  subtitle: { marginTop: spacing.sm, marginBottom: spacing.xxl },
+  field: { marginBottom: spacing.md },
+  otp: { marginBottom: spacing.sm },
+  otpError: { marginBottom: spacing.sm },
+  resend: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2A3350',
-    borderRadius: 12,
-    height: 52,
-    paddingHorizontal: 14,
-    backgroundColor: '#1C2340',
-  },
-  inputError: { borderColor: '#EF4444' },
-  inputIcon: { fontSize: 16, marginRight: 10 },
-  input: { flex: 1, fontSize: 14, color: '#FFFFFF' },
-  eyeIcon: { fontSize: 16, color: '#9CA3AF' },
-  errorText: { fontSize: 12, color: '#EF4444', marginTop: 4, marginLeft: 4 },
-
-  submitButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    height: 52,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
-  submitButtonDisabled: { opacity: 0.7 },
-  submitButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600', letterSpacing: 0.3 },
-
-  loginRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  loginText: { fontSize: 13, color: '#9CA3AF' },
-  loginLink: { fontSize: 13, color: '#A5B4FC', fontWeight: '600' },
+  generalError: { marginBottom: spacing.md },
+  cta: { marginTop: spacing.sm },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: spacing.xl,
+  },
 });

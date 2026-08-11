@@ -1,18 +1,18 @@
 import api, { isApiError } from '@/services/api';
-import { Application, ApplicationStatus, Job } from '@/types';
+import { Application, Job } from '@/types';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
-    Text,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, ImagePlaceholder, StatusPill, Text } from '@/components/ui';
+import { colors, radius, spacing } from '@/theme';
 
-// ─── Helper Functions ───
+// ─── Helpers ───
 
 function getJobRole(job: Job | string): string {
   if (typeof job === 'string') return 'Unknown Role';
@@ -22,12 +22,11 @@ function getJobRole(job: Job | string): string {
 function getEventName(application: Application): string {
   const { event, job } = application;
 
-  // Try event field first
   if (typeof event !== 'string' && event?.title) {
     return event.title;
   }
 
-  // Fall back to job.event if job is populated
+  // Fall back to the event nested on the job when only that is populated.
   if (typeof job !== 'string' && job?.event) {
     if (typeof job.event !== 'string' && job.event?.title) {
       return job.event.title;
@@ -40,11 +39,17 @@ function getEventName(application: Application): string {
 function getShiftDate(job: Job | string): string {
   if (typeof job === 'string') return '';
   const date = new Date(job.shiftStart);
+  if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
+}
+
+function getPayRate(job: Job | string): number | null {
+  if (typeof job === 'string') return null;
+  return job.payRate ?? null;
 }
 
 function formatDateApplied(isoString: string): string {
@@ -56,141 +61,52 @@ function formatDateApplied(isoString: string): string {
   });
 }
 
-function getStatusColor(status: ApplicationStatus): string {
-  switch (status) {
-    case 'pending':
-      return '#F5A623';
-    case 'accepted':
-      return '#34C759';
-    case 'rejected':
-      return '#FF3B30';
-    case 'cancelled':
-      return '#8E8E93';
-    default:
-      return '#666666';
-  }
-}
+// ─── Application card ───
 
-function getStatusLabel(status: ApplicationStatus): string {
-  switch (status) {
-    case 'pending':
-      return 'Pending';
-    case 'accepted':
-      return 'Accepted';
-    case 'rejected':
-      return 'Rejected';
-    case 'cancelled':
-      return 'Cancelled';
-    default:
-      return status;
-  }
-}
-
-// ─── Application Card Component ───
-
-interface ApplicationCardProps {
-  application: Application;
-}
-
-const ApplicationCard: React.FC<ApplicationCardProps> = ({ application }) => {
+const ApplicationCard: React.FC<{ application: Application }> = ({ application }) => {
   const roleName = getJobRole(application.job);
   const eventName = getEventName(application);
   const shiftDate = getShiftDate(application.job);
-  const statusColor = getStatusColor(application.status);
-  const statusLabel = getStatusLabel(application.status);
-  const dateApplied = formatDateApplied(application.createdAt);
+  const payRate = getPayRate(application.job);
 
   return (
-    <View style={cardStyles.card}>
-      <View style={cardStyles.header}>
-        <Text style={cardStyles.role} numberOfLines={1}>
-          {roleName}
-        </Text>
-        <View style={[cardStyles.statusBadge, { backgroundColor: statusColor + '1A' }]}>
-          <Text style={[cardStyles.statusText, { color: statusColor }]}>
-            {statusLabel}
+    <Card style={styles.card} padded={false}>
+      <ImagePlaceholder seed={roleName} glyph="📄" rounded="md" style={styles.thumb} />
+
+      <View style={styles.body}>
+        <View style={styles.topRow}>
+          <Text variant="body" weight="semibold" numberOfLines={1} style={styles.role}>
+            {roleName}
           </Text>
+          <StatusPill status={application.status} />
         </View>
-      </View>
 
-      <Text style={cardStyles.eventName} numberOfLines={1}>
-        {eventName}
-      </Text>
+        <Text variant="bodySm" color={colors.textMuted} numberOfLines={1}>
+          {eventName}
+        </Text>
 
-      <View style={cardStyles.detailsRow}>
         {shiftDate ? (
-          <View style={cardStyles.detailItem}>
-            <Text style={cardStyles.detailLabel}>Shift:</Text>
-            <Text style={cardStyles.detailValue}>{shiftDate}</Text>
-          </View>
+          <Text variant="caption" color={colors.textFaint}>
+            📅 {shiftDate}
+          </Text>
         ) : null}
 
-        <View style={cardStyles.detailItem}>
-          <Text style={cardStyles.detailLabel}>Applied:</Text>
-          <Text style={cardStyles.detailValue}>{dateApplied}</Text>
+        <View style={styles.bottomRow}>
+          <Text variant="caption" color={colors.textFaint}>
+            Applied {formatDateApplied(application.createdAt)}
+          </Text>
+          {payRate != null ? (
+            <Text variant="bodySm" weight="bold" color={colors.secondary}>
+              ₹{payRate.toLocaleString('en-IN')}
+            </Text>
+          ) : null}
         </View>
       </View>
-    </View>
+    </Card>
   );
 };
 
-const cardStyles = StyleSheet.create({
-  card: {
-    backgroundColor: '#F4F4F4',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 12,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  role: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#222222',
-    flex: 1,
-    marginRight: 8,
-  },
-  statusBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  eventName: {
-    fontSize: 13,
-    color: '#555555',
-    marginBottom: 10,
-  },
-  detailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#888888',
-    marginRight: 4,
-  },
-  detailValue: {
-    fontSize: 12,
-    color: '#444444',
-  },
-});
-
-// ─── Main Screen ───
+// ─── Screen ───
 
 const MyApplicationsScreen: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -219,169 +135,110 @@ const MyApplicationsScreen: React.FC = () => {
     fetchApplications();
   }, [fetchApplications]);
 
-  // Key extractor
-  const keyExtractor = useCallback((item: Application) => item._id, []);
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-  // Render application card
-  const renderItem = useCallback(
-    ({ item }: { item: Application }) => <ApplicationCard application={item} />,
-    []
-  );
-
-  // Empty state
-  const renderEmpty = () => {
-    if (isLoading) return null;
-
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>📄</Text>
-        <Text style={styles.emptyTitle}>No applications submitted</Text>
-        <Text style={styles.emptyMessage}>
-          Browse available jobs and apply to start working at events
+      <View style={styles.header}>
+        <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
+          My Applications
+        </Text>
+        <Text variant="bodySm" color="rgba(249,244,244,0.7)" style={styles.headerSub}>
+          Track where you&apos;ve applied
         </Text>
       </View>
-    );
-  };
 
-  // Error state
-  if (error && applications.length === 0) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-        <View style={styles.headerContainer}>
-          <Text style={styles.heading}>My Applications</Text>
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={fetchApplications}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#1B2547" />
-      <View style={styles.headerContainer}>
-        <Text style={styles.heading}>My Applications</Text>
-      </View>
-
-      {/* Loading state */}
-      {isLoading && applications.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1B2547" />
-          <Text style={styles.loadingText}>Loading applications...</Text>
-        </View>
-      ) : (
-        <View style={styles.listSection}>
+      <View style={styles.content}>
+        {error && applications.length === 0 ? (
+          <Card elevation="flat" style={styles.stateCard}>
+            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+              {error}
+            </Text>
+            <Button label="Retry" onPress={fetchApplications} size="sm" fullWidth={false} />
+          </Card>
+        ) : isLoading && applications.length === 0 ? (
+          <Card elevation="flat" style={styles.stateCard}>
+            <ActivityIndicator color={colors.primary} />
+            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
+              Loading applications…
+            </Text>
+          </Card>
+        ) : (
           <FlatList
             data={applications}
-            keyExtractor={keyExtractor}
-            renderItem={renderItem}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => <ApplicationCard application={item} />}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
-            ListEmptyComponent={renderEmpty}
+            ListEmptyComponent={
+              <Card elevation="flat" style={styles.stateCard}>
+                <Text style={styles.stateGlyph}>📄</Text>
+                <Text variant="body" weight="semibold" center>
+                  No applications yet
+                </Text>
+                <Text variant="bodySm" color={colors.textMuted} center>
+                  Browse available jobs and apply to start working at events.
+                </Text>
+              </Card>
+            }
           />
-        </View>
-      )}
+        )}
+      </View>
     </SafeAreaView>
   );
 };
 
 export default MyApplicationsScreen;
 
-// ─── Screen Styles ───
+// ─── Styles ───
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
+  safe: { flex: 1, backgroundColor: colors.primary },
+
+  header: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    borderBottomLeftRadius: radius.xxl,
+    borderBottomRightRadius: radius.xxl,
   },
-  headerContainer: {
-    backgroundColor: '#1B2547',
-    paddingTop: 28,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+  headerSub: { marginTop: 2 },
+
+  content: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl },
+  listContent: { paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
+
+  /* ── Card ── */
+  card: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
-  heading: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  listSection: {
-    flex: 1,
-    paddingTop: 16,
-    paddingHorizontal: 16,
-  },
-  listContent: {
-    paddingBottom: 32,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  thumb: { width: 64, height: 64 },
+  body: { flex: 1, gap: 2 },
+  topRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  role: { flex: 1 },
+  bottomRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
   },
-  errorIcon: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  errorMessage: {
-    fontSize: 15,
-    color: '#444444',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: '#1B2547',
-    borderRadius: 10,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyContainer: {
+
+  /* ── States ── */
+  stateCard: {
     alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 32,
+    gap: spacing.sm,
+    paddingVertical: spacing.xxxl,
+    marginTop: spacing.xl,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  stateGlyph: { fontSize: 34 },
+  stateCopy: { marginBottom: spacing.xs },
 });
