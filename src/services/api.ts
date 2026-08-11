@@ -5,6 +5,7 @@ import axios, {
     InternalAxiosRequestConfig,
 } from 'axios';
 import { ApiError, ApiResponse } from '../types';
+import { normalizeFieldErrors } from './normalizeFieldErrors';
 import { clearToken, getToken } from './tokenManager';
 
 // ─── Configuration ───
@@ -109,7 +110,7 @@ client.interceptors.response.use(
     if (status === 400 || status === 422) {
       code = 'VALIDATION_ERROR';
       message = data?.message ?? 'Validation failed';
-      fieldErrors = data?.errors ?? data?.fieldErrors;
+      fieldErrors = normalizeFieldErrors(data?.errors ?? data?.fieldErrors);
     } else if (status === 403) {
       code = 'FORBIDDEN';
       message = data?.message ?? "You don't have access to this resource";

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { create } from 'zustand';
 import api, { isApiError } from '../services/api';
+import { normalizeFieldErrors } from '../services/normalizeFieldErrors';
 import { clearToken, getToken, setToken } from '../services/tokenManager';
 import { ApiError, ApiResponse, RegisterRequest, User } from '../types';
 
@@ -69,7 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           code: status === 401 ? 'AUTH_FAILED' : 'VALIDATION_ERROR',
           message: data?.message ?? 'Login failed. Please try again.',
           status,
-          fieldErrors: data?.errors ?? data?.fieldErrors,
+          fieldErrors: normalizeFieldErrors(data?.errors ?? data?.fieldErrors),
         };
         return apiError;
       }
@@ -112,7 +113,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           code: status === 409 ? 'CONFLICT' : 'VALIDATION_ERROR',
           message: data?.message ?? 'Registration failed. Please try again.',
           status,
-          fieldErrors: data?.errors ?? data?.fieldErrors,
+          fieldErrors: normalizeFieldErrors(data?.errors ?? data?.fieldErrors),
         };
         return apiError;
       }
@@ -145,7 +146,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           code: 'VALIDATION_ERROR',
           message: data?.message ?? 'Could not send reset code. Please try again.',
           status: error.response.status,
-          fieldErrors: data?.errors ?? data?.fieldErrors,
+          fieldErrors: normalizeFieldErrors(data?.errors ?? data?.fieldErrors),
         };
       }
 
@@ -181,7 +182,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           code: error.response.status === 400 ? 'AUTH_FAILED' : 'VALIDATION_ERROR',
           message: data?.message ?? 'Could not reset password. Please try again.',
           status: error.response.status,
-          fieldErrors: data?.errors ?? data?.fieldErrors,
+          fieldErrors: normalizeFieldErrors(data?.errors ?? data?.fieldErrors),
         };
       }
 
