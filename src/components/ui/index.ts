@@ -5,6 +5,7 @@ export { Icon, roleIcon, type IconName } from './Icon';
 export { IconLabel } from './IconLabel';
 export { Input } from './Input';
 export { OtpInput } from './OtpInput';
+export { BrandWatermark } from './BrandWatermark';
 export { FadeInItem } from './FadeInItem';
 export { Skeleton, SkeletonCard, SkeletonDetail, SkeletonList } from './Skeleton';
 export { ScreenHeader } from './ScreenHeader';

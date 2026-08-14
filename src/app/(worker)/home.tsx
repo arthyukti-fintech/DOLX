@@ -12,7 +12,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, Icon, ImagePlaceholder, SkeletonList, StatusPill, Text, roleIcon } from '../../components/ui';
+import { BrandWatermark, Card, Icon, ImagePlaceholder, SkeletonList, StatusPill, Text, roleIcon } from '../../components/ui';
 import { colors, radius, shadow, spacing } from '../../theme';
 import { CATALOG_ROLES } from '@/constants/roles';
 
@@ -159,7 +159,7 @@ const WorkerHomeScreen: React.FC = () => {
 
         {/* ── Promo banner ── */}
         <View style={styles.section}>
-          <ImagePlaceholder seed="premium-banner" rounded="lg" style={styles.banner} />
+          <ImagePlaceholder seed="premium-banner" overlay rounded="lg" style={styles.banner} />
           <View style={styles.bannerCopy} pointerEvents="none">
             <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
               Premium Events{'\n'}For You
@@ -459,9 +459,7 @@ const WorkerHomeScreen: React.FC = () => {
           )}
         </View>
 
-        <Text variant="hero" weight="bold" color={colors.surface} center style={styles.watermark}>
-          DOLX
-        </Text>
+        <BrandWatermark style={styles.watermark} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -605,7 +603,7 @@ const styles = StyleSheet.create({
   trendThumb: { width: '100%', height: 92, marginBottom: spacing.sm },
   trendTitle: { marginBottom: 1 },
 
-  watermark: { marginTop: spacing.xxxl, letterSpacing: 4 },
+  watermark: { marginTop: spacing.xxl, marginBottom: spacing.lg },
 });
 
 export default WorkerHomeScreen;

@@ -1,5 +1,4 @@
 import type { ImageSourcePropType } from 'react-native';
-import type { JobRole } from '../types';
 
 /**
  * Photography for the staff categories, taken from the design file itself so
@@ -16,7 +15,11 @@ import type { JobRole } from '../types';
  * design file is a watermarked stock comp, so it falls back to its icon until
  * a licensed image exists.
  */
-const CATEGORY_IMAGES: Partial<Record<JobRole, ImageSourcePropType>> = {
+/**
+ * Keyed by job role, plus a few named slots for fixed artwork that isn't a
+ * category - the home promo banner being the first of those.
+ */
+const CATEGORY_IMAGES: Record<string, ImageSourcePropType> = {
   'Event Helper': require('../assets/images/categories/event-helper.jpg'),
   'Setup Crew': require('../assets/images/categories/setup-crew.jpg'),
   Decoration: require('../assets/images/categories/decoration.jpg'),
@@ -24,6 +27,9 @@ const CATEGORY_IMAGES: Partial<Record<JobRole, ImageSourcePropType>> = {
   'Cleaning Staff': require('../assets/images/categories/cleaning-staff.jpg'),
   Promoter: require('../assets/images/categories/promoter.jpg'),
   Hostess: require('../assets/images/categories/hostess.jpg'),
+
+  // ── Fixed artwork ──
+  'premium-banner': require('../assets/images/categories/premium-banner.jpg'),
 };
 
 /**
@@ -32,9 +38,9 @@ const CATEGORY_IMAGES: Partial<Record<JobRole, ImageSourcePropType>> = {
  * Takes a plain string because callers pass values straight from the API,
  * which may be a role, an event category, or something not yet in the enum.
  */
-export function categoryImage(role?: string): ImageSourcePropType | undefined {
-  if (!role) return undefined;
-  return CATEGORY_IMAGES[role as JobRole];
+export function categoryImage(key?: string): ImageSourcePropType | undefined {
+  if (!key) return undefined;
+  return CATEGORY_IMAGES[key];
 }
 
 export default CATEGORY_IMAGES;

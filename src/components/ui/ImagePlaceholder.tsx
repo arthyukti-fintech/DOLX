@@ -26,6 +26,11 @@ interface ImagePlaceholderProps {
   iconSize?: number;
   /** Optional short label under the icon. */
   label?: string;
+  /**
+   * Darkens a photograph so copy layered on top by the parent stays legible.
+   * Only affects the photo branch; gradients are already dark enough.
+   */
+  overlay?: boolean;
   rounded?: keyof typeof radius | number;
   style?: StyleProp<ViewStyle>;
 }
@@ -56,6 +61,7 @@ export function ImagePlaceholder({
   icon,
   iconSize = 22,
   label,
+  overlay,
   rounded = 'md',
   style,
 }: ImagePlaceholderProps) {
@@ -68,6 +74,15 @@ export function ImagePlaceholder({
     return (
       <View style={[styles.base, { borderRadius }, style]}>
         <Image source={photo} style={styles.photo} resizeMode="cover" />
+        {overlay ? (
+          <LinearGradient
+            // Weighted to the left, where the banner's headline sits.
+            colors={['rgba(1,25,69,0.78)', 'rgba(1,25,69,0.30)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0.6 }}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
         {label ? (
           <View style={styles.scrim}>
             <Text variant="caption" weight="semibold" color={colors.textOnPrimary} center numberOfLines={2}>

@@ -8,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, Icon, IconLabel, ImagePlaceholder, SkeletonList, StatusPill, Text } from '../../components/ui';
+import { BrandWatermark, Button, Card, Icon, IconLabel, ImagePlaceholder, SkeletonList, StatusPill, Text } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { useEventStore } from '../../stores/eventStore';
 import { colors, radius, spacing } from '../../theme';
@@ -204,9 +204,7 @@ export default function OrganizerHomeScreen() {
           )}
         </View>
 
-        <Text variant="hero" weight="bold" color={colors.surface} center style={styles.watermark}>
-          DOLX
-        </Text>
+        <BrandWatermark style={styles.watermark} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -284,5 +282,5 @@ const styles = StyleSheet.create({
   stateCopy: { marginBottom: spacing.xs },
   emptyGlyph: { fontSize: 32 },
 
-  watermark: { marginTop: spacing.xxxl, letterSpacing: 4 },
+  watermark: { marginTop: spacing.xxl, marginBottom: spacing.lg },
 });
