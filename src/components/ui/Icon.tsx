@@ -61,7 +61,10 @@ const GLYPHS = {
   // ── Job roles (category tiles) ──
   roleHelper: 'hand-left-outline',
   roleSetup: 'construct-outline',
+  roleDecoration: 'color-palette-outline',
   roleCatering: 'restaurant-outline',
+  roleCleaning: 'sparkles-outline',
+  roleHostess: 'rose-outline',
   rolePhoto: 'camera-outline',
   roleVideo: 'videocam-outline',
   rolePromoter: 'megaphone-outline',
@@ -99,21 +102,27 @@ export function roleIcon(role: string): IconName {
   switch (role) {
     case 'Event Helper':
       return 'roleHelper';
-    case 'Setup / Decoration Crew':
+    case 'Setup Crew':
       return 'roleSetup';
+    case 'Decoration':
+      return 'roleDecoration';
     case 'Catering Staff':
       return 'roleCatering';
+    case 'Cleaning Staff':
+      return 'roleCleaning';
+    case 'Hostess':
+      return 'roleHostess';
     case 'Photographer':
       return 'rolePhoto';
     case 'Videographer':
       return 'roleVideo';
-    case 'Brand Promoter':
+    case 'Promoter':
       return 'rolePromoter';
     case 'Registration Staff':
       return 'roleRegistration';
     case 'Host / Anchor':
       return 'roleHost';
-    case 'Security Staff':
+    case 'Security':
       return 'roleSecurity';
     case 'Crowd Management':
       return 'roleCrowd';

@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from '../../components/ui';
 import { colors } from '../../theme';
+import { JOB_ROLES } from '../../constants/roles';
 import AddressAutocomplete from '../../components/AddressAutocomplete';
 import api, { isApiError } from '../../services/api';
 import { PlaceDetails } from '../../services/places';
@@ -43,18 +44,6 @@ const EVENT_CATEGORIES: EventCategory[] = [
   'Other',
 ];
 
-const JOB_ROLES: JobRole[] = [
-  'Event Helper',
-  'Setup / Decoration Crew',
-  'Catering Staff',
-  'Photographer',
-  'Videographer',
-  'Brand Promoter',
-  'Registration Staff',
-  'Host / Anchor',
-  'Security Staff',
-  'Crowd Management',
-];
 
 const PAY_TYPES: { label: string; value: PayType }[] = [
   { label: 'Fixed', value: 'fixed' },

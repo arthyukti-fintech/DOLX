@@ -2,16 +2,22 @@
 
 export type UserRole = 'worker' | 'organizer' | 'admin';
 
+// Mirrors JOB_ROLES in the backend's utils/constants.js. The first eight are
+// the customer-facing categories the design shows; the rest stay valid but
+// aren't advertised. See src/constants/roles.ts for the runtime lists.
 export type JobRole =
   | 'Event Helper'
-  | 'Setup / Decoration Crew'
+  | 'Setup Crew'
+  | 'Decoration'
   | 'Catering Staff'
+  | 'Cleaning Staff'
+  | 'Promoter'
+  | 'Hostess'
+  | 'Security'
   | 'Photographer'
   | 'Videographer'
-  | 'Brand Promoter'
   | 'Registration Staff'
   | 'Host / Anchor'
-  | 'Security Staff'
   | 'Crowd Management';
 
 export type EventCategory =

@@ -18,21 +18,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, FadeInItem, Icon, IconLabel, ImagePlaceholder, SkeletonList, Text, roleIcon } from '@/components/ui';
 import { colors, fonts, radius, spacing, type as typeScale } from '@/theme';
+import { JOB_ROLES } from '@/constants/roles';
 
 // ─── Constants ───
 
-const JOB_ROLES: JobRole[] = [
-  'Event Helper',
-  'Setup / Decoration Crew',
-  'Catering Staff',
-  'Photographer',
-  'Videographer',
-  'Brand Promoter',
-  'Registration Staff',
-  'Host / Anchor',
-  'Security Staff',
-  'Crowd Management',
-];
 
 // ─── Helper Functions ───
 

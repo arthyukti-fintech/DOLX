@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Icon, ImagePlaceholder, SkeletonList, StatusPill, Text, roleIcon } from '../../components/ui';
 import { colors, radius, shadow, spacing } from '../../theme';
+import { CATALOG_ROLES } from '@/constants/roles';
 
 // ─── Types ───
 
@@ -30,18 +31,7 @@ interface AssignedJob {
  * kept as a local constant so the category grid renders instantly rather than
  * waiting on a round-trip for a list that effectively never changes.
  */
-const CORE_STAFF: { role: string }[] = [
-  { role: 'Event Helper' },
-  { role: 'Setup / Decoration Crew' },
-  { role: 'Catering Staff' },
-  { role: 'Photographer' },
-  { role: 'Videographer' },
-  { role: 'Brand Promoter' },
-  { role: 'Registration Staff' },
-  { role: 'Host / Anchor' },
-  { role: 'Security Staff' },
-  { role: 'Crowd Management' },
-];
+const CORE_STAFF: { role: string }[] = CATALOG_ROLES.map((role) => ({ role }));
 
 // ─── Screen ───
 

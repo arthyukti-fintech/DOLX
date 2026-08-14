@@ -14,20 +14,9 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { useServiceStore } from '../../stores/serviceStore';
 import { colors, fonts, radius, spacing, type as typeScale } from '../../theme';
 import { JobRole, Service } from '../../types';
+import { JOB_ROLES } from '../../constants/roles';
 
-const ROLE_FILTERS: (JobRole | 'All')[] = [
-  'All',
-  'Event Helper',
-  'Setup / Decoration Crew',
-  'Catering Staff',
-  'Photographer',
-  'Videographer',
-  'Brand Promoter',
-  'Registration Staff',
-  'Host / Anchor',
-  'Security Staff',
-  'Crowd Management',
-];
+const ROLE_FILTERS: (JobRole | 'All')[] = ['All', ...JOB_ROLES];
 
 export default function ServiceCatalogScreen() {
   const services = useServiceStore((s) => s.services);
