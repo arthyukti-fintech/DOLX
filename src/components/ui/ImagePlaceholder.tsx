@@ -1,16 +1,20 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { categoryImage } from '../../constants/categoryImages';
 import { colors, radius } from '../../theme';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
 
 /**
- * Stand-in for the photography in the Figma comps.
+ * The photography slot used across the app.
  *
- * The API doesn't return image URLs yet, so rather than leaving holes in the
- * layout we fill the exact same footprint with a deterministic brand gradient.
- * When image support lands this component is the single place to swap in a
- * real <Image>, and every screen picks it up.
+ * Where `seed` names a staff category we have a photograph for, this renders
+ * that image; everything else falls back to a deterministic brand gradient so
+ * the layout keeps its exact footprint rather than showing a hole.
+ *
+ * Screens already pass the role as `seed`, so photographs appeared without a
+ * single call site changing - and when the API starts returning image URLs,
+ * this stays the one place that needs to know.
  */
 
 interface ImagePlaceholderProps {
@@ -56,6 +60,25 @@ export function ImagePlaceholder({
   style,
 }: ImagePlaceholderProps) {
   const borderRadius = typeof rounded === 'number' ? rounded : radius[rounded];
+  const photo = categoryImage(seed);
+
+  // With a photograph the icon is redundant - the picture already says what
+  // the category is - but a label still needs a scrim to stay readable.
+  if (photo) {
+    return (
+      <View style={[styles.base, { borderRadius }, style]}>
+        <Image source={photo} style={styles.photo} resizeMode="cover" />
+        {label ? (
+          <View style={styles.scrim}>
+            <Text variant="caption" weight="semibold" color={colors.textOnPrimary} center numberOfLines={2}>
+              {label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
   const [from, to] = pickGradient(seed);
 
   return (
@@ -94,6 +117,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   content: { alignItems: 'center', justifyContent: 'center', gap: 4, padding: 4 },
+
+  photo: { width: '100%', height: '100%' },
+  // Anchored to the bottom so the label sits over the darker part of most
+  // photographs rather than across the subject's face.
+  scrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(1,25,69,0.62)',
+  },
 });
 
 export default ImagePlaceholder;
