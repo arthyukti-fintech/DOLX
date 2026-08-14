@@ -1,5 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { Icon } from '../../components/ui';
 import { colors, fonts } from '../../theme';
 
 export default function OrganizerTabLayout() {
@@ -25,7 +25,7 @@ export default function OrganizerTabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+            <Icon name="home" size={size} color={color as string} />
           ),
         }}
       />
@@ -34,7 +34,7 @@ export default function OrganizerTabLayout() {
         options={{
           title: 'My Events',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
+            <Icon name="calendar" size={size} color={color as string} />
           ),
         }}
       />
@@ -43,7 +43,7 @@ export default function OrganizerTabLayout() {
         options={{
           title: 'Create Event',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle-outline" size={size} color={color} />
+            <Icon name="briefcase" size={size} color={color as string} />
           ),
         }}
       />
@@ -52,7 +52,7 @@ export default function OrganizerTabLayout() {
         options={{
           title: 'Wallet',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" size={size} color={color} />
+            <Icon name="wallet" size={size} color={color as string} />
           ),
         }}
       />
@@ -61,7 +61,7 @@ export default function OrganizerTabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+            <Icon name="person" size={size} color={color as string} />
           ),
         }}
       />

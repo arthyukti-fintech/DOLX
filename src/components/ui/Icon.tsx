@@ -1,15 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { StyleProp, TextStyle } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { View } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 import { colors } from '../../theme';
+import { DOLX_ICON_DEFAULT_COLOR, DOLX_ICON_XML } from './dolxIconXml';
 
 /**
  * Semantic icon wrapper.
  *
- * Screens ask for `<Icon name="bell" />` rather than naming an Ionicons glyph
- * directly, so the icon family is swappable in one place and call sites read
- * in the app's own vocabulary. This replaced emoji used as UI icons - emoji
- * render differently per device, can't be tinted to the palette, and sit on
- * inconsistent baselines.
+ * Screens ask for `<Icon name="bell" />` rather than naming a glyph directly,
+ * so the icon family is swappable in one place and call sites read in the
+ * app's own vocabulary.
+ *
+ * Where the design supplied an icon, that is what renders. The set covers 21
+ * of the names below; the rest fall back to Ionicons, which is why the map
+ * stays - removing it would leave holes in the UI rather than a near-match.
  */
 
 const GLYPHS = {
@@ -22,6 +27,14 @@ const GLYPHS = {
   search: 'search',
   bell: 'notifications-outline',
   filter: 'options-outline',
+
+  // ── Supplied by the design set; Ionicons here is only the fallback ──
+  home: 'home-outline',
+  category: 'grid-outline',
+  edit: 'create-outline',
+  logout: 'log-out-outline',
+  help: 'help-circle-outline',
+  personAlt: 'person-circle-outline',
 
   // ── Entities ──
   calendar: 'calendar-outline',
@@ -83,18 +96,44 @@ interface IconProps {
   style?: StyleProp<TextStyle>;
 }
 
-export function Icon({ name, size = 18, color = colors.text, style }: IconProps) {
+export function Icon({ name, size = 18, color, style }: IconProps) {
+  const xml = DOLX_ICON_XML[name];
+
+  if (xml) {
+    // A few icons mean something by their colour - a green up arrow, a red
+    // down arrow, a gold star - so an explicit `color` still wins, but leaving
+    // it off keeps the design's intent rather than flattening it to body text.
+    const tint = color ?? DOLX_ICON_DEFAULT_COLOR[name] ?? colors.text;
+
+    return (
+      // SvgXml has no accessibility props of its own; the wrapper carries them.
+      // Icons sit beside their own labels, which is what a screen reader reads.
+      // Callers only ever pass spacing here, which is valid on both a Text and
+      // a View - the cast reconciles the two style types, nothing more.
+      <View style={style as StyleProp<ViewStyle>} accessible={false} pointerEvents="none">
+        <SvgXml xml={xml.replace(/__C__/g, tint)} width={size} height={size} />
+      </View>
+    );
+  }
+
   return (
     <Ionicons
       name={GLYPHS[name]}
       size={size}
-      color={color}
+      color={color ?? colors.text}
       style={style}
-      // Icons are decorative next to their own labels; the label carries the
-      // meaning for screen readers.
       accessible={false}
     />
   );
+}
+
+/**
+ * True when an icon's colour is part of its meaning - the gold star, the green
+ * and red wallet arrows. Callers that tint a whole row use this to leave those
+ * alone, so a muted label doesn't turn a rating star grey.
+ */
+export function hasSemanticColor(name: IconName): boolean {
+  return name in DOLX_ICON_DEFAULT_COLOR;
 }
 
 /** Maps a JOB_ROLES value to its category icon. */

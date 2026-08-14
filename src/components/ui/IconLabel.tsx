@@ -1,6 +1,6 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors } from '../../theme';
-import { Icon, type IconName } from './Icon';
+import { Icon, hasSemanticColor, type IconName } from './Icon';
 import { Text } from './Text';
 
 /**
@@ -37,7 +37,15 @@ export function IconLabel({
 }: IconLabelProps) {
   return (
     <View style={[styles.row, style]}>
-      <Icon name={icon} size={size} color={iconColor ?? color} />
+      {/*
+        An icon whose colour carries meaning keeps it unless a caller asks
+        otherwise - the label may be muted, but a rating star is still gold.
+      */}
+      <Icon
+        name={icon}
+        size={size}
+        color={iconColor ?? (hasSemanticColor(icon) ? undefined : color)}
+      />
       <Text
         variant={variant}
         weight={weight}
