@@ -1,13 +1,20 @@
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
-  TouchableOpacity,
   View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '../../theme';
 import { Text } from './Text';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type Size = 'sm' | 'md' | 'lg';
@@ -41,6 +48,11 @@ export function Button({
 }: ButtonProps) {
   const isDisabled = disabled || loading;
 
+  // Presses dip the button slightly - the same spring the Card uses, so the
+  // whole app responds to touch with one consistent feel.
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   const container: ViewStyle[] = [
     styles.base,
     { height: HEIGHTS[size] },
@@ -50,11 +62,16 @@ export function Button({
   ].filter(Boolean) as ViewStyle[];
 
   return (
-    <TouchableOpacity
-      style={[container, style]}
+    <AnimatedPressable
+      style={[container, animatedStyle, style]}
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.85}
+      onPressIn={() => {
+        if (!isDisabled) scale.value = withSpring(0.97, { damping: 18, stiffness: 320 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 18, stiffness: 320 });
+      }}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
     >
@@ -71,7 +88,7 @@ export function Button({
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 

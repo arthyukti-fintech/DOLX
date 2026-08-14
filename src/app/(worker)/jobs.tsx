@@ -16,7 +16,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, Text } from '@/components/ui';
+import { Button, Card, FadeInItem, Icon, IconLabel, ImagePlaceholder, SkeletonList, Text, roleIcon } from '@/components/ui';
 import { colors, fonts, radius, spacing, type as typeScale } from '@/theme';
 
 // ─── Constants ───
@@ -63,7 +63,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onPress }) => {
 
   return (
     <Card style={cardStyles.card} padded={false} onPress={onPress}>
-      <ImagePlaceholder seed={job.role} glyph="💼" rounded="md" style={cardStyles.thumb} />
+      <ImagePlaceholder seed={job.role} icon={roleIcon(job.role)} rounded="md" style={cardStyles.thumb} />
 
       <View style={cardStyles.body}>
         <View style={cardStyles.topRow}>
@@ -81,18 +81,23 @@ const JobCard: React.FC<JobCardProps> = ({ job, onPress }) => {
           </Text>
         ) : null}
 
-        <Text variant="caption" color={colors.textFaint}>
-          🕐 {formatTime(job.shiftStart)} – {formatTime(job.shiftEnd)}
-        </Text>
+        <IconLabel
+          icon="clock"
+          label={`${formatTime(job.shiftStart)} – ${formatTime(job.shiftEnd)}`}
+          color={colors.textFaint}
+        />
 
         <View style={cardStyles.bottomRow}>
           <Text variant="caption" color={colors.textFaint}>
             / {job.payType === 'hourly' ? 'hr' : 'fixed'}
           </Text>
           {job.distanceKm !== undefined ? (
-            <Text variant="caption" weight="semibold" color={colors.primary}>
-              📍 {job.distanceKm} km away
-            </Text>
+            <IconLabel
+              icon="location"
+              label={`${job.distanceKm} km away`}
+              color={colors.primary}
+              weight="semibold"
+            />
           ) : null}
         </View>
       </View>
@@ -159,7 +164,7 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
 
       {/* Search */}
       <View style={headerStyles.searchContainer}>
-        <Text style={headerStyles.searchGlyph}>🔍</Text>
+        <Icon name="search" size={16} color={colors.textFaint} />
         <TextInput
           style={headerStyles.searchInput}
           placeholder="Search by role or event…"
@@ -200,9 +205,13 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
           onPress={onRetryLocation}
           activeOpacity={0.7}
         >
-          <Text variant="caption" color="rgba(249,244,244,0.85)" style={headerStyles.bannerCopy}>
-            📍 Enable location to sort jobs by distance
-          </Text>
+          <IconLabel
+            icon="location"
+            label="Enable location to sort jobs by distance"
+            color="rgba(249,244,244,0.85)"
+            numberOfLines={2}
+            style={headerStyles.bannerCopy}
+          />
           <Text variant="caption" weight="semibold" color={colors.secondary}>
             Enable
           </Text>
@@ -219,7 +228,7 @@ const JobsHeader: React.FC<JobsHeaderProps> = ({
           <Text variant="bodySm" color={colors.textOnPrimary} numberOfLines={1} style={headerStyles.filterLabel}>
             {selectedRole || 'All Roles'}
           </Text>
-          <Text style={headerStyles.filterArrow}>▾</Text>
+          <Icon name="chevronDown" size={14} color={colors.textOnPrimary} />
         </TouchableOpacity>
 
         {selectedRole ? (
@@ -494,7 +503,7 @@ const JobBrowserScreen: React.FC = () => {
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.stateGlyph}>📋</Text>
+        <Icon name="document" size={34} color={colors.textFaint} />
         <Text variant="body" weight="semibold" center>
           No jobs found
         </Text>
@@ -523,7 +532,7 @@ const JobBrowserScreen: React.FC = () => {
           onRetryLocation={retryLocation}
         />
         <View style={styles.centered}>
-          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Icon name="warning" size={34} color={colors.textFaint} />
           <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
             {error}
           </Text>
@@ -549,18 +558,17 @@ const JobBrowserScreen: React.FC = () => {
 
       {/* Initial loading state */}
       {isLoading && jobs.length === 0 ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text variant="bodySm" color={colors.textMuted}>
-            Loading jobs…
-          </Text>
+        <View style={styles.listContainer}>
+          <SkeletonList style={styles.listContent} />
         </View>
       ) : (
         <View style={styles.listContainer}>
           <FlatList
             data={filteredJobs}
             keyExtractor={keyExtractor}
-            renderItem={renderJobCard}
+            renderItem={({ item, index }) => (
+              <FadeInItem index={index}>{renderJobCard({ item })}</FadeInItem>
+            )}
             onEndReached={onEndReached}
             onEndReachedThreshold={onEndReachedThreshold}
             showsVerticalScrollIndicator={false}

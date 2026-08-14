@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RazorpayCheckout from 'react-native-razorpay';
-import { Button, Card, ScreenHeader, StatusPill, Text } from '../../components/ui';
+import { Button, Card, Icon, ScreenHeader, StatusPill, Text } from '../../components/ui';
 import { isApiError } from '../../services/api';
 import { usePaymentStore } from '../../stores/paymentStore';
 import { colors, radius, spacing } from '../../theme';
@@ -171,7 +171,7 @@ export default function PaymentFlowScreen() {
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <ScreenHeader title="Payment" />
         <View style={styles.centered}>
-          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Icon name="warning" size={34} color={colors.textFaint} />
           <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
             {error || 'Payment not found'}
           </Text>
@@ -267,9 +267,10 @@ export default function PaymentFlowScreen() {
           ) : null}
 
           {payment.status === 'released' ? (
-            <View style={[styles.banner, styles.bannerSuccess]}>
-              <Text variant="bodySm" weight="semibold" color={colors.success} center>
-                ✓ Payment completed
+            <View style={[styles.banner, styles.bannerSuccess, styles.bannerRow]}>
+              <Icon name="check" size={16} color={colors.success} />
+              <Text variant="bodySm" weight="semibold" color={colors.success}>
+                Payment completed
               </Text>
             </View>
           ) : null}
@@ -324,6 +325,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   bannerError: { backgroundColor: colors.dangerBg },
+  bannerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   bannerSuccess: { backgroundColor: colors.successBg },
 
   actions: { marginTop: spacing.sm, gap: spacing.md },

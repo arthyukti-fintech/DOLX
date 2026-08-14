@@ -10,7 +10,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, Text } from '../../components/ui';
+import { Button, Icon, Input, Text } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { colors, radius, spacing } from '../../theme';
 
@@ -131,7 +131,7 @@ const LoginScreen: React.FC = () => {
             }}
             editable={!isLoading}
             error={emailError || undefined}
-            icon={<Text style={styles.inputIcon}>✉️</Text>}
+            icon={<Icon name="mail" size={18} color={colors.textFaint} />}
             containerStyle={styles.field}
           />
 
@@ -145,7 +145,7 @@ const LoginScreen: React.FC = () => {
             }}
             editable={!isLoading}
             error={passwordError || undefined}
-            icon={<Text style={styles.inputIcon}>🔑</Text>}
+            icon={<Icon name="key" size={18} color={colors.textFaint} />}
             containerStyle={styles.field}
           />
 

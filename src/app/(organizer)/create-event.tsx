@@ -15,6 +15,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Icon } from '../../components/ui';
 import { colors } from '../../theme';
 import AddressAutocomplete from '../../components/AddressAutocomplete';
 import api, { isApiError } from '../../services/api';
@@ -511,7 +512,10 @@ export default function CreateEventScreen() {
           {locatingCurrentPosition ? (
             <ActivityIndicator size="small" color="#A5B4FC" />
           ) : (
-            <Text style={styles.useLocationButtonText}>📍 Use my current location</Text>
+            <View style={styles.useLocationRow}>
+              <Icon name="location" size={14} color={colors.secondary} />
+              <Text style={styles.useLocationButtonText}>Use my current location</Text>
+            </View>
           )}
         </TouchableOpacity>
         {eventErrors.coordinates ? (
@@ -630,12 +634,18 @@ export default function CreateEventScreen() {
         </Text>
       </View>
       <View style={styles.jobCardDetails}>
-        <Text style={styles.jobCardDetail}>
-          👥 {item.numberOfWorkers} worker{item.numberOfWorkers > 1 ? 's' : ''}
-        </Text>
-        <Text style={styles.jobCardDetail}>
-          🕐 {item.shiftStart} – {item.shiftEnd}
-        </Text>
+        <View style={styles.jobCardDetailRow}>
+          <Icon name="people" size={13} color={colors.textMuted} />
+          <Text style={styles.jobCardDetail}>
+            {item.numberOfWorkers} worker{item.numberOfWorkers > 1 ? 's' : ''}
+          </Text>
+        </View>
+        <View style={styles.jobCardDetailRow}>
+          <Icon name="clock" size={13} color={colors.textMuted} />
+          <Text style={styles.jobCardDetail}>
+            {item.shiftStart} – {item.shiftEnd}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -827,7 +837,7 @@ export default function CreateEventScreen() {
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Icon name="back" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
           {renderStepIndicator()}
           <View style={{ width: 36 }} />
@@ -929,6 +939,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 14, color: colors.textOnPrimary },
   errorText: { fontSize: 12, color: colors.danger, marginTop: 4, marginLeft: 4 },
   useLocationButton: { alignSelf: 'flex-start', marginTop: 8, paddingVertical: 4 },
+  useLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   useLocationButtonText: { fontSize: 13, color: colors.secondary, fontWeight: '600' },
 
   /* Chips */
@@ -1004,5 +1015,6 @@ const styles = StyleSheet.create({
   jobCardRole: { fontSize: 14, fontWeight: '600', color: colors.textOnPrimary, flex: 1 },
   jobCardPay: { fontSize: 13, color: colors.secondary, fontWeight: '500' },
   jobCardDetails: { flexDirection: 'row', gap: 16 },
+  jobCardDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   jobCardDetail: { fontSize: 12, color: colors.textMuted },
 });

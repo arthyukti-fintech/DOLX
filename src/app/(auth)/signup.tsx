@@ -10,16 +10,16 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, ScreenHeader, Text } from '../../components/ui';
+import { Button, Icon, Input, ScreenHeader, Text, type IconName } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { colors, radius, spacing } from '../../theme';
 import { UserRole } from '../../types';
 
 type FieldErrors = Record<string, string>;
 
-const ROLES: { value: UserRole; glyph: string; label: string; blurb: string }[] = [
-  { value: 'organizer', glyph: '🎪', label: 'Event Organiser', blurb: 'Hire staff for events' },
-  { value: 'worker', glyph: '🙋', label: 'Worker', blurb: 'Find gigs near you' },
+const ROLES: { value: UserRole; icon: IconName; label: string; blurb: string }[] = [
+  { value: 'organizer', icon: 'calendar', label: 'Event Organiser', blurb: 'Hire staff for events' },
+  { value: 'worker', icon: 'roleHelper', label: 'Worker', blurb: 'Find gigs near you' },
 ];
 
 export default function SignupScreen() {
@@ -139,7 +139,11 @@ export default function SignupScreen() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isActive }}
                 >
-                  <Text style={styles.roleGlyph}>{option.glyph}</Text>
+                  <Icon
+                    name={option.icon}
+                    size={24}
+                    color={isActive ? colors.secondary : colors.primary}
+                  />
                   <Text variant="bodySm" weight="semibold" center>
                     {option.label}
                   </Text>
@@ -166,7 +170,7 @@ export default function SignupScreen() {
             }}
             editable={!isLoading}
             error={fieldErrors.name}
-            icon={<Text style={styles.inputIcon}>👤</Text>}
+            icon={<Icon name="person" size={18} color={colors.textFaint} />}
             containerStyle={styles.field}
           />
 
@@ -181,7 +185,7 @@ export default function SignupScreen() {
             }}
             editable={!isLoading}
             error={fieldErrors.email}
-            icon={<Text style={styles.inputIcon}>✉️</Text>}
+            icon={<Icon name="mail" size={18} color={colors.textFaint} />}
             containerStyle={styles.field}
           />
 
@@ -195,7 +199,7 @@ export default function SignupScreen() {
             }}
             editable={!isLoading}
             error={fieldErrors.phone}
-            icon={<Text style={styles.inputIcon}>📱</Text>}
+            icon={<Icon name="phone" size={18} color={colors.textFaint} />}
             containerStyle={styles.field}
           />
 
@@ -209,7 +213,7 @@ export default function SignupScreen() {
               }}
               editable={!isLoading}
               error={fieldErrors.companyName}
-              icon={<Text style={styles.inputIcon}>🏢</Text>}
+              icon={<Icon name="building" size={18} color={colors.textFaint} />}
               containerStyle={styles.field}
             />
           ) : null}
@@ -224,7 +228,7 @@ export default function SignupScreen() {
             }}
             editable={!isLoading}
             error={fieldErrors.password}
-            icon={<Text style={styles.inputIcon}>🔑</Text>}
+            icon={<Icon name="key" size={18} color={colors.textFaint} />}
             containerStyle={styles.field}
           />
 

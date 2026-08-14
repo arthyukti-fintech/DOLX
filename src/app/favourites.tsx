@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
@@ -9,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, Text } from '../components/ui';
+import { Button, Card, FadeInItem, Icon, IconLabel, ImagePlaceholder, SkeletonList, Text, roleIcon } from '../components/ui';
 import { useServiceStore } from '../stores/serviceStore';
 import { colors, radius, spacing } from '../theme';
 import { Service } from '../types';
@@ -27,7 +26,7 @@ export default function FavouritesScreen() {
 
   const renderItem = ({ item }: { item: Service }) => (
     <Card style={styles.card} padded={false} onPress={() => router.push(`/services/${item._id}`)}>
-      <ImagePlaceholder seed={item.role} glyph="✨" rounded="md" style={styles.thumb} />
+      <ImagePlaceholder seed={item.role} icon={roleIcon(item.role)} rounded="md" style={styles.thumb} />
 
       <View style={styles.body}>
         <View style={styles.topRow}>
@@ -40,7 +39,7 @@ export default function FavouritesScreen() {
             accessibilityRole="button"
             accessibilityLabel="Remove from favourites"
           >
-            <Text style={styles.heart}>❤️</Text>
+            <Icon name="heart" size={18} color={colors.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -48,9 +47,7 @@ export default function FavouritesScreen() {
           {item.description ?? item.role}
         </Text>
 
-        <Text variant="caption" color={colors.textFaint} style={styles.meta}>
-          ⭐ {item.ratingAvg > 0 ? item.ratingAvg.toFixed(1) : 'New'}
-        </Text>
+        <IconLabel icon="star" label={item.ratingAvg > 0 ? item.ratingAvg.toFixed(1) : 'New'} color={colors.textFaint} variant="caption" />
       </View>
     </Card>
   );
@@ -68,7 +65,7 @@ export default function FavouritesScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Icon name="back" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
           <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
             Favourites
@@ -79,22 +76,19 @@ export default function FavouritesScreen() {
 
       <View style={styles.content}>
         {isLoading ? (
-          <Card elevation="flat" style={styles.stateCard}>
-            <ActivityIndicator color={colors.primary} />
-            <Text variant="bodySm" color={colors.textMuted} center>
-              Loading favourites…
-            </Text>
-          </Card>
+          <SkeletonList />
         ) : (
           <FlatList
             data={favourites}
             keyExtractor={(s) => s._id}
-            renderItem={renderItem}
+            renderItem={({ item, index }) => (
+              <FadeInItem index={index}>{renderItem({ item })}</FadeInItem>
+            )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <Card elevation="flat" style={styles.stateCard}>
-                <Text style={styles.stateGlyph}>🤍</Text>
+                <Icon name="heartOutline" size={34} color={colors.textFaint} />
                 <Text variant="body" weight="semibold" center>
                   No favourites yet
                 </Text>

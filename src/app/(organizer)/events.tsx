@@ -1,14 +1,13 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, StatusPill, Text } from '../../components/ui';
+import { Button, Card, FadeInItem, Icon, IconLabel, ImagePlaceholder, SkeletonList, StatusPill, Text } from '../../components/ui';
 import { useEventStore } from '../../stores/eventStore';
 import { colors, radius, spacing } from '../../theme';
 import { Event } from '../../types';
@@ -46,7 +45,7 @@ export default function MyEventsScreen() {
 
   const renderEventCard = ({ item }: { item: Event }) => (
     <Card style={styles.card} padded={false} onPress={() => router.push(`/event/${item._id}`)}>
-      <ImagePlaceholder seed={item.eventType} glyph="🎪" rounded="md" style={styles.thumb} />
+      <ImagePlaceholder seed={item.eventType} icon="calendar" rounded="md" style={styles.thumb} />
 
       <View style={styles.body}>
         <View style={styles.topRow}>
@@ -56,16 +55,10 @@ export default function MyEventsScreen() {
           <StatusPill status={item.status} />
         </View>
 
-        <Text variant="caption" color={colors.textMuted}>
-          📅 {formatDate(item.date)}
-        </Text>
-        <Text variant="caption" color={colors.textMuted}>
-          🏷️ {item.eventType}
-        </Text>
+        <IconLabel icon="calendar" label={formatDate(item.date)} color={colors.textMuted} variant="caption" />
+        <IconLabel icon="tag" label={item.eventType} color={colors.textMuted} variant="caption" />
         {item.location?.city ? (
-          <Text variant="caption" color={colors.textMuted}>
-            📍 {item.location.city}
-          </Text>
+          <IconLabel icon="location" label={item.location.city} color={colors.textMuted} variant="caption" />
         ) : null}
       </View>
     </Card>
@@ -87,29 +80,26 @@ export default function MyEventsScreen() {
       <View style={styles.content}>
         {error && !isLoading && events.length === 0 ? (
           <Card elevation="flat" style={styles.stateCard}>
-            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Icon name="warning" size={34} color={colors.textFaint} />
             <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
               {error}
             </Text>
             <Button label="Retry" onPress={handleRetry} size="sm" fullWidth={false} />
           </Card>
         ) : isLoading && events.length === 0 ? (
-          <Card elevation="flat" style={styles.stateCard}>
-            <ActivityIndicator color={colors.primary} />
-            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
-              Loading your events…
-            </Text>
-          </Card>
+          <SkeletonList />
         ) : (
           <FlatList
             data={events}
             keyExtractor={(item) => item._id}
-            renderItem={renderEventCard}
+            renderItem={({ item, index }) => (
+              <FadeInItem index={index}>{renderEventCard({ item })}</FadeInItem>
+            )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <Card elevation="flat" style={styles.stateCard}>
-                <Text style={styles.stateGlyph}>📋</Text>
+                <Icon name="document" size={34} color={colors.textFaint} />
                 <Text variant="body" weight="semibold" center>
                   No events yet
                 </Text>

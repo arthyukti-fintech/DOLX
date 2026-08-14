@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
@@ -9,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, Text } from '../components/ui';
+import { Button, Card, FadeInItem, Icon, SkeletonList, Text, type IconName } from '../components/ui';
 import api, { isApiError } from '../services/api';
 import { colors, radius, spacing } from '../theme';
 
@@ -29,20 +28,24 @@ interface NotificationItem {
   createdAt: string;
 }
 
-// Each notification type gets a glyph so the list is scannable without
+// Each notification type gets an icon so the list is scannable without
 // reading every line.
-const TYPE_GLYPH: Record<string, string> = {
-  new_job_alert: '💼',
-  application_received: '📥',
-  application_accepted: '✅',
-  application_rejected: '❌',
-  job_status_update: '🔄',
-  payment_held: '🔒',
-  payment_released: '💰',
-  dispute_update: '⚖️',
-  admin_announcement: '📢',
-  booking_confirmed: '📅',
+const TYPE_ICON: Record<string, IconName> = {
+  new_job_alert: 'briefcase',
+  application_received: 'document',
+  application_accepted: 'check',
+  application_rejected: 'close',
+  job_status_update: 'clock',
+  payment_held: 'lock',
+  payment_released: 'wallet',
+  dispute_update: 'scale',
+  admin_announcement: 'megaphone',
+  booking_confirmed: 'calendar',
 };
+
+function notificationIcon(type: string): IconName {
+  return TYPE_ICON[type] ?? 'bell';
+}
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -120,7 +123,7 @@ export default function NotificationsScreen() {
       onPress={() => handleTapOne(item)}
     >
       <View style={styles.iconWrap}>
-        <Text style={styles.glyph}>{TYPE_GLYPH[item.type] ?? '🔔'}</Text>
+        <Icon name={notificationIcon(item.type)} size={18} color={colors.primary} />
       </View>
 
       <View style={styles.body}>
@@ -154,7 +157,7 @@ export default function NotificationsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Icon name="back" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
 
           <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
@@ -182,15 +185,10 @@ export default function NotificationsScreen() {
 
       <View style={styles.content}>
         {isLoading && notifications.length === 0 ? (
-          <Card elevation="flat" style={styles.stateCard}>
-            <ActivityIndicator color={colors.primary} />
-            <Text variant="bodySm" color={colors.textMuted} center>
-              Loading notifications…
-            </Text>
-          </Card>
+          <SkeletonList />
         ) : error ? (
           <Card elevation="flat" style={styles.stateCard}>
-            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Icon name="warning" size={34} color={colors.textFaint} />
             <Text variant="bodySm" color={colors.textMuted} center>
               {error}
             </Text>
@@ -200,12 +198,14 @@ export default function NotificationsScreen() {
           <FlatList
             data={notifications}
             keyExtractor={(n) => n._id}
-            renderItem={renderItem}
+            renderItem={({ item, index }) => (
+              <FadeInItem index={index}>{renderItem({ item })}</FadeInItem>
+            )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <Card elevation="flat" style={styles.stateCard}>
-                <Text style={styles.stateGlyph}>🔔</Text>
+                <Icon name="bell" size={34} color={colors.textFaint} />
                 <Text variant="body" weight="semibold" center>
                   No notifications yet
                 </Text>

@@ -10,7 +10,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input, ScreenHeader, Text } from '../../components/ui';
+import { Button, Icon, Input, ScreenHeader, Text } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { colors, radius, spacing } from '../../theme';
 
@@ -59,7 +59,7 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.badge}>
-            <Text style={styles.badgeGlyph}>🔒</Text>
+            <Icon name="lock" size={28} color={colors.primary} />
           </View>
 
           <Text variant="h1" weight="bold">
@@ -81,7 +81,7 @@ export default function ForgotPasswordScreen() {
             }}
             editable={!isLoading}
             error={emailError || undefined}
-            icon={<Text style={styles.inputIcon}>✉️</Text>}
+            icon={<Icon name="mail" size={18} color={colors.textFaint} />}
             containerStyle={styles.field}
           />
 

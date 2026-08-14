@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
@@ -10,7 +9,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, Text } from '../../components/ui';
+import { Button, Card, Icon, IconLabel, ImagePlaceholder, SkeletonList, Text, roleIcon } from '../../components/ui';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useServiceStore } from '../../stores/serviceStore';
 import { colors, fonts, radius, spacing, type as typeScale } from '../../theme';
@@ -64,7 +63,7 @@ export default function ServiceCatalogScreen() {
         padded={false}
         onPress={() => router.push(`/services/${item._id}`)}
       >
-        <ImagePlaceholder seed={item.role} glyph="✨" rounded="md" style={styles.thumb} />
+        <ImagePlaceholder seed={item.role} icon={roleIcon(item.role)} rounded="md" style={styles.thumb} />
 
         <View style={styles.body}>
           <View style={styles.topRow}>
@@ -77,7 +76,7 @@ export default function ServiceCatalogScreen() {
               accessibilityRole="button"
               accessibilityLabel={saved ? 'Remove from favourites' : 'Add to favourites'}
             >
-              <Text style={styles.heart}>{saved ? '❤️' : '🤍'}</Text>
+              <Icon name={saved ? 'heart' : 'heartOutline'} size={18} color={saved ? colors.secondary : colors.textFaint} />
             </TouchableOpacity>
           </View>
 
@@ -86,9 +85,7 @@ export default function ServiceCatalogScreen() {
           </Text>
 
           <View style={styles.metaRow}>
-            <Text variant="caption" color={colors.textFaint}>
-              ⭐ {item.ratingAvg > 0 ? item.ratingAvg.toFixed(1) : 'New'}
-            </Text>
+            <IconLabel icon="star" label={item.ratingAvg > 0 ? item.ratingAvg.toFixed(1) : 'New'} color={colors.textFaint} variant="caption" />
             {item.isFeatured ? (
               <View style={styles.featuredTag}>
                 <Text variant="caption" weight="medium" color={colors.secondary}>
@@ -115,7 +112,7 @@ export default function ServiceCatalogScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Icon name="back" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
           <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
             All Categories
@@ -127,12 +124,12 @@ export default function ServiceCatalogScreen() {
             accessibilityRole="button"
             accessibilityLabel="Favourites"
           >
-            <Text style={styles.backArrow}>♡</Text>
+            <Icon name="heartOutline" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.search}>
-          <Text style={styles.searchGlyph}>🔍</Text>
+          <Icon name="search" size={16} color={colors.textFaint} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search services…"
@@ -171,15 +168,10 @@ export default function ServiceCatalogScreen() {
         />
 
         {isLoading && services.length === 0 ? (
-          <Card elevation="flat" style={styles.stateCard}>
-            <ActivityIndicator color={colors.primary} />
-            <Text variant="bodySm" color={colors.textMuted} center>
-              Loading services…
-            </Text>
-          </Card>
+          <SkeletonList />
         ) : error ? (
           <Card elevation="flat" style={styles.stateCard}>
-            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Icon name="warning" size={34} color={colors.textFaint} />
             <Text variant="bodySm" color={colors.textMuted} center>
               {error}
             </Text>
@@ -196,7 +188,7 @@ export default function ServiceCatalogScreen() {
             extraData={favourites.length}
             ListEmptyComponent={
               <Card elevation="flat" style={styles.stateCard}>
-                <Text style={styles.stateGlyph}>🔍</Text>
+                <Icon name="search" size={34} color={colors.textFaint} />
                 <Text variant="body" weight="semibold" center>
                   No services found
                 </Text>

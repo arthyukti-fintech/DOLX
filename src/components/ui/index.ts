@@ -1,8 +1,12 @@
 export { Button } from './Button';
 export { Card } from './Card';
 export { ImagePlaceholder } from './ImagePlaceholder';
+export { Icon, roleIcon, type IconName } from './Icon';
+export { IconLabel } from './IconLabel';
 export { Input } from './Input';
 export { OtpInput } from './OtpInput';
+export { FadeInItem } from './FadeInItem';
+export { Skeleton, SkeletonCard, SkeletonDetail, SkeletonList } from './Skeleton';
 export { ScreenHeader } from './ScreenHeader';
 export { StatusPill } from './StatusPill';
 export { Text } from './Text';

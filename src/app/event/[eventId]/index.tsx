@@ -12,7 +12,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusPill } from '../../../components/ui';
+import { Icon, SkeletonDetail, StatusPill } from '../../../components/ui';
 import { useEventStore } from '../../../stores/eventStore';
 import { colors, fonts, radius, spacing } from '../../../theme';
 import { Event, Job } from '../../../types';
@@ -130,8 +130,10 @@ export default function EventDetailScreen() {
               ]}
             >
               {item.filledCount}/{item.numberOfWorkers}
-              {isFilled ? ' ✓' : ''}
             </Text>
+            {isFilled ? (
+              <Icon name="check" size={14} color={colors.success} style={styles.filledTick} />
+            ) : null}
           </View>
 
           {/* Pay rate */}
@@ -166,13 +168,13 @@ export default function EventDetailScreen() {
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Icon name="back" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Event Details</Text>
           <View style={{ width: 36 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
+          <Icon name="warning" size={40} color={colors.textFaint} style={styles.errorIcon} />
           <Text style={styles.errorTitle}>Failed to load event</Text>
           <Text style={styles.errorMessage}>{error}</Text>
           <TouchableOpacity
@@ -199,14 +201,13 @@ export default function EventDetailScreen() {
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Icon name="back" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Event Details</Text>
           <View style={{ width: 36 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading event details...</Text>
+          <SkeletonDetail />
         </View>
       </SafeAreaView>
     );
@@ -227,7 +228,7 @@ export default function EventDetailScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <Icon name="back" size={18} color={colors.textOnPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           Event Details
@@ -248,16 +249,16 @@ export default function EventDetailScreen() {
 
           <View style={styles.infoBody}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>📅</Text>
+              <Icon name="calendar" size={14} color={colors.textMuted} style={styles.infoIcon} />
               <Text style={styles.infoLabel}>{formatDate(currentEvent.date)}</Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>🏷️</Text>
+              <Icon name="tag" size={14} color={colors.textMuted} style={styles.infoIcon} />
               <Text style={styles.infoLabel}>{currentEvent.eventType}</Text>
             </View>
             {currentEvent.location?.city ? (
               <View style={styles.infoRow}>
-                <Text style={styles.infoIcon}>📍</Text>
+                <Icon name="location" size={14} color={colors.textMuted} style={styles.infoIcon} />
                 <Text style={styles.infoLabel}>
                   {[
                     currentEvent.location.address,
@@ -280,7 +281,7 @@ export default function EventDetailScreen() {
             ) : null}
             {currentEvent.description ? (
               <View style={[styles.infoRow, { marginTop: 4 }]}>
-                <Text style={styles.infoIcon}>📝</Text>
+                <Icon name="document" size={14} color={colors.textMuted} style={styles.infoIcon} />
                 <Text style={styles.infoLabel}>{currentEvent.description}</Text>
               </View>
             ) : null}
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
   },
   infoBody: { gap: spacing.sm },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
-  infoIcon: { fontSize: 14, marginTop: 1 },
+  infoIcon: { marginTop: 1 },
   infoLabel: {
     fontFamily: fonts.bodyRegular,
     fontSize: 13,
@@ -459,6 +460,7 @@ const styles = StyleSheet.create({
   },
   jobCardBody: { gap: spacing.xs + 2 },
   jobRow: { flexDirection: 'row', alignItems: 'center' },
+  filledTick: { marginLeft: 4 },
   jobLabel: {
     fontFamily: fonts.bodyRegular,
     fontSize: 12,
@@ -536,7 +538,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxxl,
     gap: spacing.sm,
   },
-  errorIcon: { fontSize: 40, marginBottom: spacing.sm },
+  errorIcon: { marginBottom: spacing.sm },
   errorTitle: {
     fontFamily: fonts.displaySemiBold,
     fontSize: 18,

@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Text } from '@/components/ui';
+import { Button, Icon, Text, type IconName } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 
 /**
@@ -15,16 +15,16 @@ import { colors, radius, spacing } from '@/theme';
 
 type Role = 'organizer' | 'worker';
 
-const OPTIONS: { role: Role; glyph: string; title: string; blurb: string }[] = [
+const OPTIONS: { role: Role; icon: IconName; title: string; blurb: string }[] = [
   {
     role: 'organizer',
-    glyph: '🎪',
+    icon: 'calendar',
     title: 'Event Organiser',
     blurb: 'Post events and hire verified staff on demand.',
   },
   {
     role: 'worker',
-    glyph: '🙋',
+    icon: 'roleHelper',
     title: 'Worker',
     blurb: 'Find gigs near you and get paid after every job.',
   },
@@ -88,7 +88,11 @@ export default function RoleSelectionScreen() {
                 accessibilityState={{ selected: isActive }}
               >
                 <View style={[styles.optionIcon, isActive && styles.optionIconActive]}>
-                  <Text style={styles.optionGlyph}>{option.glyph}</Text>
+                  <Icon
+                    name={option.icon}
+                    size={22}
+                    color={isActive ? colors.textOnPrimary : colors.primary}
+                  />
                 </View>
 
                 <View style={styles.optionBody}>

@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -9,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, StatusPill, Text } from '../../components/ui';
+import { Button, Card, Icon, IconLabel, ImagePlaceholder, SkeletonList, StatusPill, Text } from '../../components/ui';
 import { useAuthStore } from '../../stores/authStore';
 import { useEventStore } from '../../stores/eventStore';
 import { colors, radius, spacing } from '../../theme';
@@ -63,7 +62,7 @@ export default function OrganizerHomeScreen() {
     >
       <ImagePlaceholder
         seed={item.eventType}
-        glyph="🎪"
+        icon="calendar"
         rounded="md"
         style={styles.eventThumb}
       />
@@ -74,16 +73,10 @@ export default function OrganizerHomeScreen() {
           </Text>
           <StatusPill status={item.status} />
         </View>
-        <Text variant="caption" color={colors.textMuted}>
-          📅 {formatDate(item.date)}
-        </Text>
-        <Text variant="caption" color={colors.textMuted}>
-          🏷️ {item.eventType}
-        </Text>
+        <IconLabel icon="calendar" label={formatDate(item.date)} color={colors.textMuted} variant="caption" />
+        <IconLabel icon="tag" label={item.eventType} color={colors.textMuted} variant="caption" />
         {item.location?.city ? (
-          <Text variant="caption" color={colors.textMuted}>
-            📍 {item.location.city}
-          </Text>
+          <IconLabel icon="location" label={item.location.city} color={colors.textMuted} variant="caption" />
         ) : null}
       </View>
     </Card>
@@ -148,7 +141,7 @@ export default function OrganizerHomeScreen() {
         <View style={styles.section}>
           <View style={styles.actionRow}>
             <Button
-              label="✨  Create Event"
+              label="Create Event"
               onPress={() => router.push('/(organizer)/create-event')}
               size="md"
               style={styles.actionBtn}
@@ -182,12 +175,7 @@ export default function OrganizerHomeScreen() {
           </View>
 
           {isLoading && !hasFetched ? (
-            <Card elevation="flat" style={styles.stateCard}>
-              <ActivityIndicator color={colors.primary} />
-              <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
-                Loading your events…
-              </Text>
-            </Card>
+            <SkeletonList />
           ) : error && events.length === 0 ? (
             <Card elevation="flat" style={styles.stateCard}>
               <Text variant="bodySm" color={colors.danger} center style={styles.stateCopy}>
@@ -197,7 +185,7 @@ export default function OrganizerHomeScreen() {
             </Card>
           ) : activeEvents.length === 0 ? (
             <Card elevation="flat" style={styles.stateCard}>
-              <Text style={styles.emptyGlyph}>🎪</Text>
+              <Icon name="calendar" size={32} color={colors.textFaint} />
               <Text variant="body" weight="semibold" center>
                 No active events
               </Text>

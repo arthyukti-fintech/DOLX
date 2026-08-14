@@ -3,14 +3,13 @@ import { usePaymentStore } from '@/stores/paymentStore';
 import { Payment } from '@/types';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, Text } from '@/components/ui';
+import { Button, Card, FadeInItem, Icon, IconLabel, SkeletonList, Text, type IconName } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 
 // ─── Constants ───
@@ -98,14 +97,14 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ payment, userRole }) 
 
   const accent = isCredit ? colors.success : isPending ? colors.warning : colors.danger;
   const iconBg = isCredit ? colors.successBg : isPending ? colors.warningBg : colors.dangerBg;
-  const glyph = isCredit ? '↓' : isPending ? '⏳' : '↑';
+  const icon: IconName = isCredit ? 'arrowIn' : isPending ? 'hourglass' : 'arrowOut';
   const sign = isCredit ? '+' : isPending ? '' : '-';
   const badge = isCredit ? 'Credit' : isPending ? 'Pending' : 'Debit';
 
   return (
     <Card style={styles.txCard} padded={false}>
       <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
-        <Text style={[styles.txGlyph, { color: accent }]}>{glyph}</Text>
+        <Icon name={icon} size={17} color={accent} />
       </View>
 
       <View style={styles.txBody}>
@@ -113,9 +112,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ payment, userRole }) 
           {getEventOrJobName(payment)}
         </Text>
         <View style={styles.txMeta}>
-          <Text variant="caption" color={colors.textFaint}>
-            🕐 {formatDateTime(payment.createdAt)}
-          </Text>
+          <IconLabel icon="clock" label={formatDateTime(payment.createdAt)} color={colors.textFaint} variant="caption" />
           <View style={styles.txBadge}>
             <Text variant="caption" weight="medium" color={colors.textMuted}>
               {badge}
@@ -210,30 +207,29 @@ const WalletScreen: React.FC = () => {
 
         {showError && transactions.length === 0 ? (
           <Card elevation="flat" style={styles.stateCard}>
-            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Icon name="warning" size={34} color={colors.textFaint} />
             <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
               {error || 'Unable to load transactions. Please try again.'}
             </Text>
             <Button label="Retry" onPress={handleRetry} size="sm" fullWidth={false} />
           </Card>
         ) : isLoading && transactions.length === 0 ? (
-          <Card elevation="flat" style={styles.stateCard}>
-            <ActivityIndicator color={colors.primary} />
-            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
-              Loading transactions…
-            </Text>
-          </Card>
+          <SkeletonList />
         ) : (
           <FlatList
             data={transactions}
             keyExtractor={(item) => item._id}
-            renderItem={({ item }) => <TransactionCard payment={item} userRole={userRole} />}
+            renderItem={({ item, index }) => (
+              <FadeInItem index={index}>
+                <TransactionCard payment={item} userRole={userRole} />
+              </FadeInItem>
+            )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               isLoading ? null : (
                 <Card elevation="flat" style={styles.stateCard}>
-                  <Text style={styles.stateGlyph}>💰</Text>
+                  <Icon name="wallet" size={34} color={colors.textFaint} />
                   <Text variant="body" weight="semibold" center>
                     No transactions yet
                   </Text>

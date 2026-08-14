@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     Alert,
     ScrollView,
     StatusBar,
@@ -9,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ScreenHeader, StatusPill, Text } from '../../../../../components/ui';
+import { Button, Card, Icon, IconLabel, ScreenHeader, SkeletonList, StatusPill, Text } from '../../../../../components/ui';
 import api, { isApiError } from '../../../../../services/api';
 import { colors, radius, spacing } from '../../../../../theme';
 import { Application, ApplicationStatus, Job, User } from '../../../../../types';
@@ -160,12 +159,7 @@ export default function ApplicantManagerScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <ScreenHeader title="Applicants" />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text variant="bodySm" color={colors.textMuted}>
-            Loading applicants…
-          </Text>
-        </View>
+        <SkeletonList />
       </SafeAreaView>
     );
   }
@@ -176,7 +170,7 @@ export default function ApplicantManagerScreen() {
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <ScreenHeader title="Applicants" />
         <View style={styles.centered}>
-          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Icon name="warning" size={34} color={colors.textFaint} />
           <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
             {error}
           </Text>
@@ -199,14 +193,20 @@ export default function ApplicantManagerScreen() {
           <Text variant="body" weight="semibold">
             {job.role}
           </Text>
-          <Text
-            variant="bodySm"
-            weight="semibold"
-            color={isPositionsFilled ? colors.success : colors.textMuted}
-          >
-            {job.filledCount} / {job.numberOfWorkers} filled
-            {isPositionsFilled ? ' ✓' : ''}
-          </Text>
+          {isPositionsFilled ? (
+            <IconLabel
+              icon="check"
+              label={`${job.filledCount} / ${job.numberOfWorkers} filled`}
+              color={colors.success}
+              variant="bodySm"
+              weight="semibold"
+              size={14}
+            />
+          ) : (
+            <Text variant="bodySm" weight="semibold" color={colors.textMuted}>
+              {job.filledCount} / {job.numberOfWorkers} filled
+            </Text>
+          )}
         </View>
       ) : null}
 
@@ -225,7 +225,7 @@ export default function ApplicantManagerScreen() {
       >
         {applicants.length === 0 ? (
           <Card elevation="flat" style={styles.stateCard}>
-            <Text style={styles.stateGlyph}>👤</Text>
+            <Icon name="person" size={34} color={colors.textFaint} />
             <Text variant="body" weight="semibold" center>
               No applicants yet
             </Text>
@@ -287,10 +287,17 @@ export default function ApplicantManagerScreen() {
                       <Text variant="caption" color={colors.textFaint} style={styles.detailLabel}>
                         Rating
                       </Text>
-                      <Text variant="bodySm" style={styles.detailValue}>
-                        ⭐ {workerProfile.ratingAvg.toFixed(1)} ({workerProfile.ratingCount}{' '}
-                        {workerProfile.ratingCount === 1 ? 'review' : 'reviews'})
-                      </Text>
+                      <IconLabel
+                        icon="star"
+                        iconColor={colors.secondary}
+                        color={colors.text}
+                        variant="bodySm"
+                        size={14}
+                        style={styles.detailValue}
+                        label={`${workerProfile.ratingAvg.toFixed(1)} (${workerProfile.ratingCount} ${
+                          workerProfile.ratingCount === 1 ? 'review' : 'reviews'
+                        })`}
+                      />
                     </View>
                   </View>
                 ) : null}

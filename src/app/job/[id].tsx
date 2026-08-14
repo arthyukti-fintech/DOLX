@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     Linking,
     ScrollView,
     StatusBar,
@@ -9,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, ScreenHeader, StatusPill, Text } from '../../components/ui';
+import { Button, Card, Icon, IconLabel, ImagePlaceholder, ScreenHeader, SkeletonDetail, StatusPill, Text, roleIcon } from '../../components/ui';
 import api, { isApiError } from '../../services/api';
 import { useJobStore } from '../../stores/jobStore';
 import { colors, radius, spacing } from '../../theme';
@@ -122,12 +121,7 @@ export default function JobDetailScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <ScreenHeader title="Job Details" />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text variant="bodySm" color={colors.textMuted}>
-            Loading job details…
-          </Text>
-        </View>
+        <SkeletonDetail />
       </SafeAreaView>
     );
   }
@@ -139,7 +133,7 @@ export default function JobDetailScreen() {
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <ScreenHeader title="Job Details" />
         <View style={styles.centered}>
-          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Icon name="warning" size={34} color={colors.textFaint} />
           <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
             {error || 'Job not found'}
           </Text>
@@ -177,7 +171,7 @@ export default function JobDetailScreen() {
         <View style={styles.hero}>
           <ImagePlaceholder
             seed={currentJob.role}
-            glyph="💼"
+            icon={roleIcon(currentJob.role)}
             rounded="lg"
             style={styles.heroImage}
           />
@@ -197,9 +191,14 @@ export default function JobDetailScreen() {
               </View>
             </View>
             {currentJob.distanceKm !== undefined ? (
-              <Text variant="bodySm" weight="semibold" color={colors.primary}>
-                📍 {currentJob.distanceKm} km away
-              </Text>
+              <IconLabel
+                icon="location"
+                label={`${currentJob.distanceKm} km away`}
+                color={colors.primary}
+                variant="bodySm"
+                weight="semibold"
+                size={15}
+              />
             ) : null}
           </View>
         </View>

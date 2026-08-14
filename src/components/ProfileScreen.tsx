@@ -17,7 +17,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, Text } from '@/components/ui';
+import { Button, Card, Icon, IconLabel, SkeletonDetail, Text, type IconName } from '@/components/ui';
 import { colors, fonts, radius, spacing, type as typeScale } from '@/theme';
 
 // ─── Constants ───
@@ -318,7 +318,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
           <Text variant="h3" weight="semibold">Profile</Text>
         </View>
         <View style={styles.centered}>
-          <Text style={styles.bigGlyph}>⚠️</Text>
+          <Icon name="warning" size={40} color={colors.textFaint} />
           <Text variant="body" color={colors.textMuted} center style={styles.centeredCopy}>
             {error || 'Unable to load profile. Please try again.'}
           </Text>
@@ -337,12 +337,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
         <View style={styles.topBar}>
           <Text variant="h3" weight="semibold">Profile</Text>
         </View>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text variant="bodySm" color={colors.textMuted} style={styles.centeredCopy}>
-            Loading profile…
-          </Text>
-        </View>
+        <SkeletonDetail />
       </SafeAreaView>
     );
   }
@@ -357,6 +352,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
   const InfoRow = ({
     label,
     value,
+    icon,
+    iconColor,
     editing,
     onChangeText,
     placeholder,
@@ -364,6 +361,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
   }: {
     label: string;
     value: string;
+    /** Optional leading icon on the value line (e.g. a star beside a rating). */
+    icon?: IconName;
+    iconColor?: string;
     editing?: boolean;
     onChangeText?: (t: string) => void;
     placeholder?: string;
@@ -382,6 +382,16 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
           placeholderTextColor={colors.textFaint}
           keyboardType={keyboardType ?? 'default'}
         />
+      ) : icon ? (
+        <IconLabel
+          icon={icon}
+          iconColor={iconColor}
+          color={colors.text}
+          variant="body"
+          weight="medium"
+          size={15}
+          label={value || '—'}
+        />
       ) : (
         <Text variant="body" weight="medium">
           {value || '—'}
@@ -392,11 +402,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
 
   /** Navigational row in the Figma "Personal Info" menu. */
   const MenuRow = ({
-    glyph,
+    icon,
     label,
     onPress,
   }: {
-    glyph: string;
+    icon: IconName;
     label: string;
     onPress?: () => void;
   }) => (
@@ -408,7 +418,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
       accessibilityRole="button"
     >
       <View style={styles.menuIcon}>
-        <Text style={styles.menuGlyph}>{glyph}</Text>
+        <Icon name={icon} size={17} color={colors.primary} />
       </View>
       <Text variant="body" style={styles.menuLabel}>
         {label}
@@ -467,7 +477,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
                 {isUploading ? (
                   <ActivityIndicator size="small" color={colors.textOnPrimary} />
                 ) : (
-                  <Text style={styles.avatarBadgeGlyph}>📷</Text>
+                  <Icon name="rolePhoto" size={14} color={colors.textOnPrimary} />
                 )}
               </TouchableOpacity>
             ) : null}
@@ -599,7 +609,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
               <View style={styles.divider} />
               <InfoRow
                 label="Rating"
-                value={`⭐ ${wp.ratingAvg?.toFixed(1) ?? '0.0'} (${wp.ratingCount ?? 0} reviews)`}
+                icon="star"
+                iconColor={colors.secondary}
+                value={`${wp.ratingAvg?.toFixed(1) ?? '0.0'} (${wp.ratingCount ?? 0} reviews)`}
               />
               <View style={styles.divider} />
               <InfoRow
@@ -630,7 +642,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
               <View style={styles.divider} />
               <InfoRow
                 label="Rating"
-                value={`⭐ ${displayUser?.organizerProfile?.ratingAvg?.toFixed(1) ?? '0.0'} (${
+                icon="star"
+                iconColor={colors.secondary}
+                value={`${displayUser?.organizerProfile?.ratingAvg?.toFixed(1) ?? '0.0'} (${
                   displayUser?.organizerProfile?.ratingCount ?? 0
                 } reviews)`}
               />
@@ -642,7 +656,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
         {!isEditing ? (
           <Card style={styles.card} padded={false}>
             <MenuRow
-              glyph="🧾"
+              icon="document"
               label={role === 'worker' ? 'My Applications' : 'My Events'}
               onPress={() =>
                 router.push(role === 'worker' ? '/(worker)/applications' : '/(organizer)/events')
@@ -650,7 +664,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ role }) => {
             />
             <View style={styles.divider} />
             <MenuRow
-              glyph="💳"
+              icon="wallet"
               label="Wallet"
               onPress={() =>
                 router.push(role === 'worker' ? '/(worker)/wallet' : '/(organizer)/wallet')

@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import {
-    ActivityIndicator,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -9,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, Text } from '../../components/ui';
+import { Button, Card, Icon, IconLabel, ImagePlaceholder, SkeletonDetail, Text, roleIcon } from '../../components/ui';
 import { useServiceStore } from '../../stores/serviceStore';
 import { colors, radius, spacing } from '../../theme';
 
@@ -52,11 +51,8 @@ export default function ServiceDetailScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text variant="bodySm" color={colors.textMuted}>
-            Loading service…
-          </Text>
+        <View style={styles.skeletonWrap}>
+          <SkeletonDetail />
         </View>
       </SafeAreaView>
     );
@@ -67,7 +63,7 @@ export default function ServiceDetailScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <View style={styles.centered}>
-          <Text style={styles.stateGlyph}>⚠️</Text>
+          <Icon name="warning" size={34} color={colors.textFaint} />
           <Text variant="bodySm" color={colors.textMuted} center>
             {error ?? 'Service not found'}
           </Text>
@@ -85,7 +81,8 @@ export default function ServiceDetailScreen() {
         {/* ── Hero ── */}
         <View style={styles.hero}>
           {/* Square hero - the card below overlaps it with its own radius. */}
-          <ImagePlaceholder seed={service.role} glyph="✨" rounded={0} style={styles.heroImg} />
+          <ImagePlaceholder seed={service.role} icon={roleIcon(service.role)}
+            iconSize={44} rounded={0} style={styles.heroImg} />
 
           <SafeAreaView style={styles.heroOverlay} edges={['top']}>
             <TouchableOpacity
@@ -95,7 +92,7 @@ export default function ServiceDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Text style={styles.circleGlyph}>←</Text>
+              <Icon name="back" size={18} color={colors.textOnPrimary} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -105,7 +102,7 @@ export default function ServiceDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel={saved ? 'Remove from favourites' : 'Add to favourites'}
             >
-              <Text style={styles.circleGlyph}>{saved ? '❤️' : '🤍'}</Text>
+              <Icon name={saved ? 'heart' : 'heartOutline'} size={18} color={saved ? colors.secondary : colors.textOnPrimary} />
             </TouchableOpacity>
           </SafeAreaView>
         </View>
@@ -126,10 +123,16 @@ export default function ServiceDetailScreen() {
           </View>
 
           <View style={styles.metaRow}>
-            <Text variant="bodySm" color={colors.textMuted}>
-              ⭐ {service.ratingAvg > 0 ? service.ratingAvg.toFixed(1) : 'New'}
-              {service.ratingCount > 0 ? ` (${service.ratingCount})` : ''}
-            </Text>
+            <IconLabel
+              icon="star"
+              iconColor={colors.secondary}
+              variant="bodySm"
+              size={14}
+              label={
+                (service.ratingAvg > 0 ? service.ratingAvg.toFixed(1) : 'New') +
+                (service.ratingCount > 0 ? ` (${service.ratingCount})` : '')
+              }
+            />
             <Text variant="bodySm" color={colors.textFaint}>
               •
             </Text>
@@ -173,6 +176,9 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: spacing.xxxl },
 
+  // The service detail sits on the navy hero, so the skeleton needs the light
+  // page background under it or the placeholder blocks disappear.
+  skeletonWrap: { flex: 1, backgroundColor: colors.background },
   centered: {
     flex: 1,
     alignItems: 'center',

@@ -12,7 +12,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, ImagePlaceholder, StatusPill, Text } from '../../components/ui';
+import { Card, Icon, ImagePlaceholder, SkeletonList, StatusPill, Text, roleIcon } from '../../components/ui';
 import { colors, radius, shadow, spacing } from '../../theme';
 
 // ─── Types ───
@@ -30,17 +30,17 @@ interface AssignedJob {
  * kept as a local constant so the category grid renders instantly rather than
  * waiting on a round-trip for a list that effectively never changes.
  */
-const CORE_STAFF: { role: string; glyph: string }[] = [
-  { role: 'Event Helper', glyph: '🙋' },
-  { role: 'Setup / Decoration Crew', glyph: '🎪' },
-  { role: 'Catering Staff', glyph: '🍽️' },
-  { role: 'Photographer', glyph: '📷' },
-  { role: 'Videographer', glyph: '🎥' },
-  { role: 'Brand Promoter', glyph: '📣' },
-  { role: 'Registration Staff', glyph: '📋' },
-  { role: 'Host / Anchor', glyph: '🎤' },
-  { role: 'Security Staff', glyph: '🛡️' },
-  { role: 'Crowd Management', glyph: '👥' },
+const CORE_STAFF: { role: string }[] = [
+  { role: 'Event Helper' },
+  { role: 'Setup / Decoration Crew' },
+  { role: 'Catering Staff' },
+  { role: 'Photographer' },
+  { role: 'Videographer' },
+  { role: 'Brand Promoter' },
+  { role: 'Registration Staff' },
+  { role: 'Host / Anchor' },
+  { role: 'Security Staff' },
+  { role: 'Crowd Management' },
 ];
 
 // ─── Screen ───
@@ -122,9 +122,12 @@ const WorkerHomeScreen: React.FC = () => {
               <Text variant="h2" weight="bold" color={colors.textOnPrimary}>
                 Welcome, {userName}
               </Text>
-              <Text variant="bodySm" color="rgba(249,244,244,0.7)" style={styles.headerSub}>
-                {city ? `📍 ${city}` : 'Find your next gig'}
-              </Text>
+              <View style={styles.headerSubRow}>
+                {city ? <Icon name="location" size={12} color="rgba(249,244,244,0.7)" /> : null}
+                <Text variant="bodySm" color="rgba(249,244,244,0.7)">
+                  {city ?? 'Find your next gig'}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.headerActions}>
@@ -135,7 +138,7 @@ const WorkerHomeScreen: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
               >
-                <Text style={styles.headerGlyph}>🔔</Text>
+                <Icon name="bell" size={18} color={colors.textOnPrimary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerIcon}
@@ -157,7 +160,7 @@ const WorkerHomeScreen: React.FC = () => {
             onPress={() => router.push('/(worker)/jobs')}
             accessibilityRole="search"
           >
-            <Text style={styles.searchGlyph}>🔍</Text>
+            <Icon name="search" size={16} color={colors.textFaint} />
             <Text variant="bodySm" color={colors.textFaint}>
               Find your perfect gig
             </Text>
@@ -200,7 +203,8 @@ const WorkerHomeScreen: React.FC = () => {
               >
                 <ImagePlaceholder
                   seed={item.role}
-                  glyph={item.glyph}
+                  icon={roleIcon(item.role)}
+                  iconSize={24}
                   rounded="md"
                   style={styles.categoryThumb}
                 />
@@ -251,7 +255,7 @@ const WorkerHomeScreen: React.FC = () => {
 
               return (
                 <Card key={item._id} style={styles.bookingCard} padded={false}>
-                  <ImagePlaceholder seed={role} glyph="📅" rounded="md" style={styles.bookingThumb} />
+                  <ImagePlaceholder seed={role} icon="calendar" rounded="md" style={styles.bookingThumb} />
                   <View style={styles.bookingBody}>
                     <Text variant="body" weight="semibold" numberOfLines={1}>
                       {eventTitle}
@@ -261,7 +265,7 @@ const WorkerHomeScreen: React.FC = () => {
                     </Text>
                     <View style={styles.bookingMeta}>
                       <Text variant="caption" color={colors.textFaint}>
-                        🕐 {formatShift(shiftStart)}
+                        {formatShift(shiftStart)}
                       </Text>
                     </View>
                     <View style={styles.bookingFooter}>
@@ -328,7 +332,7 @@ const WorkerHomeScreen: React.FC = () => {
                   >
                     <ImagePlaceholder
                       seed={job.role}
-                      glyph="✨"
+                      icon={roleIcon(job.role)}
                       rounded="md"
                       style={styles.discoverThumb}
                     />
@@ -389,7 +393,7 @@ const WorkerHomeScreen: React.FC = () => {
                 >
                   <ImagePlaceholder
                     seed={service.role}
-                    glyph="✨"
+                    icon={roleIcon(service.role)}
                     rounded="pill"
                     style={styles.featuredAvatar}
                   />
@@ -400,7 +404,7 @@ const WorkerHomeScreen: React.FC = () => {
                     {service.role}
                   </Text>
                   <Text variant="caption" color={colors.textFaint} center>
-                    ⭐ {service.ratingAvg > 0 ? service.ratingAvg.toFixed(1) : 'New'}
+                    {service.ratingAvg > 0 ? service.ratingAvg.toFixed(1) : 'New'}
                   </Text>
                   <View style={styles.bookBtn}>
                     <Text variant="caption" weight="semibold" color={colors.textOnPrimary}>
@@ -447,7 +451,7 @@ const WorkerHomeScreen: React.FC = () => {
                 >
                   <ImagePlaceholder
                     seed={service.role}
-                    glyph="✨"
+                    icon={roleIcon(service.role)}
                     rounded="md"
                     style={styles.trendThumb}
                   />
@@ -489,7 +493,7 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerLeft: { flex: 1, marginRight: spacing.md },
-  headerSub: { marginTop: 2 },
+  headerSubRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   headerActions: { flexDirection: 'row', gap: spacing.sm },
   headerIcon: {
     width: 42,

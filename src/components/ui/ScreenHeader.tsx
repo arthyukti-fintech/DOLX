@@ -7,6 +7,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { colors, radius, spacing } from '../../theme';
+import { Icon } from './Icon';
 import { Text } from './Text';
 
 /**
@@ -46,7 +47,7 @@ export function ScreenHeader({
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={[styles.chevron, { color: tint }]}>←</Text>
+          <Icon name="back" size={19} color={tint} />
         </TouchableOpacity>
       ) : (
         <View style={styles.spacer} />
@@ -88,7 +89,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderColor: 'rgba(255,255,255,0.2)',
   },
-  chevron: { fontSize: 18, lineHeight: 22 },
   title: { flex: 1, textAlign: 'center' },
   flex: { flex: 1 },
   spacer: { width: 40 },

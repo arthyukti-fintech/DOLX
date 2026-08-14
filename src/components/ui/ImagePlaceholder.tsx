@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius } from '../../theme';
+import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
 
 /**
@@ -15,9 +16,11 @@ import { Text } from './Text';
 interface ImagePlaceholderProps {
   /** Drives which gradient is picked, so the same entity keeps the same colour. */
   seed?: string;
-  /** Optional glyph/emoji rendered centred - e.g. a category icon. */
-  glyph?: string;
-  /** Optional short label under the glyph. */
+  /** Optional icon rendered centred - e.g. the category's icon. */
+  icon?: IconName;
+  /** Size of the centred icon; scale it up on large tiles. */
+  iconSize?: number;
+  /** Optional short label under the icon. */
   label?: string;
   rounded?: keyof typeof radius | number;
   style?: StyleProp<ViewStyle>;
@@ -46,7 +49,8 @@ function pickGradient(seed?: string): [string, string] {
 
 export function ImagePlaceholder({
   seed,
-  glyph,
+  icon,
+  iconSize = 22,
   label,
   rounded = 'md',
   style,
@@ -61,9 +65,11 @@ export function ImagePlaceholder({
       end={{ x: 1, y: 1 }}
       style={[styles.base, { borderRadius }, style]}
     >
-      {glyph || label ? (
+      {icon || label ? (
         <View style={styles.content}>
-          {glyph ? <Text style={styles.glyph}>{glyph}</Text> : null}
+          {icon ? (
+            <Icon name={icon} size={iconSize} color="rgba(255,255,255,0.92)" />
+          ) : null}
           {label ? (
             <Text
               variant="caption"
@@ -87,8 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  content: { alignItems: 'center', justifyContent: 'center', gap: 2, padding: 4 },
-  glyph: { fontSize: 20 },
+  content: { alignItems: 'center', justifyContent: 'center', gap: 4, padding: 4 },
 });
 
 export default ImagePlaceholder;

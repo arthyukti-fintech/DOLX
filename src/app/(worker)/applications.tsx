@@ -2,14 +2,13 @@ import api, { isApiError } from '@/services/api';
 import { Application, Job } from '@/types';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, ImagePlaceholder, StatusPill, Text } from '@/components/ui';
+import { Button, Card, FadeInItem, Icon, IconLabel, ImagePlaceholder, SkeletonList, StatusPill, Text, roleIcon } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme';
 
 // ─── Helpers ───
@@ -71,7 +70,7 @@ const ApplicationCard: React.FC<{ application: Application }> = ({ application }
 
   return (
     <Card style={styles.card} padded={false}>
-      <ImagePlaceholder seed={roleName} glyph="📄" rounded="md" style={styles.thumb} />
+      <ImagePlaceholder seed={roleName} icon={roleIcon(roleName)} rounded="md" style={styles.thumb} />
 
       <View style={styles.body}>
         <View style={styles.topRow}>
@@ -86,9 +85,7 @@ const ApplicationCard: React.FC<{ application: Application }> = ({ application }
         </Text>
 
         {shiftDate ? (
-          <Text variant="caption" color={colors.textFaint}>
-            📅 {shiftDate}
-          </Text>
+          <IconLabel icon="calendar" label={shiftDate} color={colors.textFaint} variant="caption" />
         ) : null}
 
         <View style={styles.bottomRow}>
@@ -151,29 +148,28 @@ const MyApplicationsScreen: React.FC = () => {
       <View style={styles.content}>
         {error && applications.length === 0 ? (
           <Card elevation="flat" style={styles.stateCard}>
-            <Text style={styles.stateGlyph}>⚠️</Text>
+            <Icon name="warning" size={34} color={colors.textFaint} />
             <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
               {error}
             </Text>
             <Button label="Retry" onPress={fetchApplications} size="sm" fullWidth={false} />
           </Card>
         ) : isLoading && applications.length === 0 ? (
-          <Card elevation="flat" style={styles.stateCard}>
-            <ActivityIndicator color={colors.primary} />
-            <Text variant="bodySm" color={colors.textMuted} center style={styles.stateCopy}>
-              Loading applications…
-            </Text>
-          </Card>
+          <SkeletonList />
         ) : (
           <FlatList
             data={applications}
             keyExtractor={(item) => item._id}
-            renderItem={({ item }) => <ApplicationCard application={item} />}
+            renderItem={({ item, index }) => (
+              <FadeInItem index={index}>
+                <ApplicationCard application={item} />
+              </FadeInItem>
+            )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={
               <Card elevation="flat" style={styles.stateCard}>
-                <Text style={styles.stateGlyph}>📄</Text>
+                <Icon name="document" size={34} color={colors.textFaint} />
                 <Text variant="body" weight="semibold" center>
                   No applications yet
                 </Text>
