@@ -30,55 +30,38 @@ const IMAGES = {
   col3_img3: { uri: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=200&h=200&fit=crop' },
 };
 
+/** Digits only, capped at 10 - the length the backend stores. */
+const cleanPhone = (raw: string) => raw.replace(/\D/g, '').slice(0, 10);
+
 const LoginScreen: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = useAuthStore((state) => state.login);
+  const requestLoginOtp = useAuthStore((state) => state.requestLoginOtp);
 
-  const validate = (): boolean => {
-    let valid = true;
-    setEmailError('');
-    setPasswordError('');
+  const handleSendCode = async () => {
     setApiError('');
+    setPhoneError('');
 
-    if (!email.trim()) {
-      setEmailError('Email is required');
-      valid = false;
-    }
-
-    if (!password.trim()) {
-      setPasswordError('Password is required');
-      valid = false;
-    }
-
-    return valid;
-  };
-
-  const handleLogin = async () => {
-    if (!validate()) return;
-
-    setIsLoading(true);
-    setApiError('');
-
-    const error = await login(email.trim(), password.trim());
-
-    if (error) {
-      setApiError(error.message);
-      setIsLoading(false);
+    if (phone.length !== 10) {
+      setPhoneError('Enter your 10-digit mobile number');
       return;
     }
 
-    const currentUser = useAuthStore.getState().user;
-    if (currentUser?.role === 'organizer') {
-      router.replace('/(organizer)/home');
-    } else {
-      router.replace('/(worker)/home');
+    setIsLoading(true);
+    const error = await requestLoginOtp(phone);
+    setIsLoading(false);
+
+    if (error) {
+      setApiError(error.message);
+      return;
     }
+
+    // The response is deliberately identical for unregistered numbers, so the
+    // code screen is where a wrong number surfaces - not here.
+    router.push({ pathname: '/(auth)/verify-otp', params: { phone } });
   };
 
   return (
@@ -121,43 +104,25 @@ const LoginScreen: React.FC = () => {
           </Text>
 
           <Input
-            placeholder="Enter Your Email"
-            keyboardType="email-address"
+            placeholder="Enter Your Mobile Number"
+            keyboardType="number-pad"
             autoCapitalize="none"
-            value={email}
+            textContentType="telephoneNumber"
+            maxLength={10}
+            value={phone}
             onChangeText={(text) => {
-              setEmail(text);
-              if (emailError) setEmailError('');
+              setPhone(cleanPhone(text));
+              if (phoneError) setPhoneError('');
             }}
             editable={!isLoading}
-            error={emailError || undefined}
-            icon={<Icon name="mail" size={18} color={colors.textFaint} />}
+            error={phoneError || undefined}
+            icon={
+              <Text variant="bodySm" weight="semibold" color={colors.textMuted}>
+                +91
+              </Text>
+            }
             containerStyle={styles.field}
           />
-
-          <Input
-            placeholder="Enter Password"
-            isPassword
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              if (passwordError) setPasswordError('');
-            }}
-            editable={!isLoading}
-            error={passwordError || undefined}
-            icon={<Icon name="key" size={18} color={colors.textFaint} />}
-            containerStyle={styles.field}
-          />
-
-          <TouchableOpacity
-            style={styles.forgotPasswordRow}
-            activeOpacity={0.7}
-            onPress={() => router.push('/(auth)/forgot-password')}
-          >
-            <Text variant="bodySm" weight="semibold" color={colors.primary}>
-              Forgot Password?
-            </Text>
-          </TouchableOpacity>
 
           {apiError ? (
             <Text variant="bodySm" color={colors.danger} center style={styles.apiError}>
@@ -165,7 +130,12 @@ const LoginScreen: React.FC = () => {
             </Text>
           ) : null}
 
-          <Button label="Log In" onPress={handleLogin} loading={isLoading} style={styles.loginButton} />
+          <Button
+            label="Log In"
+            onPress={handleSendCode}
+            loading={isLoading}
+            style={styles.loginButton}
+          />
 
           <View style={styles.orRow}>
             <View style={styles.orLine} />

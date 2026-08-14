@@ -25,16 +25,19 @@ interface OtpInputProps {
   alphanumeric?: boolean;
   autoFocus?: boolean;
   hasError?: boolean;
+  /** Locked while a code is being checked, so the boxes can't change mid-request. */
+  editable?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
 export function OtpInput({
   value,
   onChange,
-  length = 6,
+  length = 4,
   alphanumeric = false,
   autoFocus,
   hasError,
+  editable = true,
   style,
 }: OtpInputProps) {
   const inputs = useRef<(TextInput | null)[]>([]);
@@ -116,6 +119,7 @@ export function OtpInput({
           // Allows the OS to paste a full code into the first box.
           maxLength={index === 0 ? length : 1}
           autoFocus={autoFocus && index === 0}
+          editable={editable}
           textAlign="center"
           selectTextOnFocus
           accessibilityLabel={`Verification code digit ${index + 1}`}

@@ -29,11 +29,72 @@ interface AuthMeResponse {
   user: User;
 }
 
+/** One account a phone number resolves to, when it resolves to more than one. */
+export interface OtpAccountChoice {
+  role: 'worker' | 'organizer';
+  name: string;
+}
+
+interface VerifyOtpResponse {
+  token?: string;
+  user?: User;
+  requiresRoleSelection?: boolean;
+  accounts?: OtpAccountChoice[];
+}
+
+/**
+ * Turns an axios failure into the app's ApiError shape.
+ *
+ * Every call in this store needs the same three branches - server responded,
+ * network never reached it, something else entirely - and the field-error
+ * normalisation is easy to forget, which is exactly the bug that made every
+ * form silently swallow its validation messages.
+ */
+function toApiError(error: unknown, fallbackMessage: string): ApiError {
+  if (axios.isAxiosError(error) && error.response) {
+    const status = error.response.status;
+    const data = error.response.data as Record<string, any> | undefined;
+
+    return {
+      code:
+        status === 401 ? 'AUTH_FAILED'
+        : status === 409 ? 'CONFLICT'
+        : status === 429 ? 'RATE_LIMITED'
+        : 'VALIDATION_ERROR',
+      message: data?.message ?? fallbackMessage,
+      status,
+      fieldErrors: normalizeFieldErrors(data?.errors ?? data?.fieldErrors),
+    };
+  }
+
+  if (axios.isAxiosError(error) && !error.response) {
+    return {
+      code: error.code === 'ECONNABORTED' ? 'TIMEOUT_ERROR' : 'NETWORK_ERROR',
+      message:
+        error.code === 'ECONNABORTED'
+          ? 'Request timed out. Please try again.'
+          : 'Unable to connect. Check your internet and try again.',
+    };
+  }
+
+  return { code: 'UNKNOWN_ERROR', message: 'An unexpected error occurred' };
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<ApiError | null>;
+  requestLoginOtp: (phone: string) => Promise<ApiError | null>;
+  /**
+   * Resolves to `null` on a completed sign-in, to a list of accounts when the
+   * number carries more than one and the caller must pick, or to an ApiError.
+   */
+  verifyLoginOtp: (
+    phone: string,
+    code: string,
+    role?: 'worker' | 'organizer'
+  ) => Promise<ApiError | { accounts: OtpAccountChoice[] } | null>;
   register: (data: RegisterRequest) => Promise<ApiError | null>;
   forgotPassword: (email: string) => Promise<ApiError | null>;
   resetPassword: (email: string, secretKey: string, newPassword: string) => Promise<ApiError | null>;
@@ -88,6 +149,43 @@ export const useAuthStore = create<AuthState>((set) => ({
         code: 'UNKNOWN_ERROR',
         message: 'An unexpected error occurred',
       };
+    }
+  },
+
+  requestLoginOtp: async (phone: string): Promise<ApiError | null> => {
+    try {
+      await publicClient.post('/api/auth/login/request-otp', { phone });
+      return null;
+    } catch (error: unknown) {
+      return toApiError(error, 'Could not send the code. Please try again.');
+    }
+  },
+
+  verifyLoginOtp: async (phone, code, role) => {
+    try {
+      const response = await publicClient.post<ApiResponse<VerifyOtpResponse>>(
+        '/api/auth/login/verify-otp',
+        { phone, code, ...(role ? { role } : {}) }
+      );
+
+      const { token, user, requiresRoleSelection, accounts } = response.data.data;
+
+      // The number has both a worker and an organizer account - the screen asks
+      // which one before we can issue a token.
+      if (requiresRoleSelection && accounts) {
+        return { accounts };
+      }
+
+      if (!token || !user) {
+        return { code: 'UNKNOWN_ERROR', message: 'Sign-in did not complete. Please try again.' };
+      }
+
+      await setToken(token);
+      set({ user, isAuthenticated: true });
+
+      return null;
+    } catch (error: unknown) {
+      return toApiError(error, 'That code did not work. Please try again.');
     }
   },
 
