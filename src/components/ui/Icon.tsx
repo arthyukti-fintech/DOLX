@@ -1,4 +1,56 @@
-import { Ionicons } from '@expo/vector-icons';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Banknote,
+  Bell,
+  Briefcase,
+  Brush,
+  Building2,
+  Calendar,
+  Camera,
+  ChevronDown,
+  ChevronRight,
+  CircleCheck,
+  CircleHelp,
+  CircleUser,
+  ClipboardList,
+  Clock,
+  ConciergeBell,
+  FileText,
+  HandHelping,
+  Heart,
+  House,
+  Hourglass,
+  Key,
+  LayoutGrid,
+  Lock,
+  LogOut,
+  Mail,
+  MapPin,
+  Megaphone,
+  Mic,
+  PartyPopper,
+  Phone,
+  Scale,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  SquarePen,
+  Star,
+  Tag,
+  TriangleAlert,
+  User,
+  Users,
+  UsersRound,
+  UtensilsCrossed,
+  Video,
+  Wallet,
+  Wrench,
+  X,
+} from 'lucide-react-native';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
@@ -13,81 +65,99 @@ import { DOLX_ICON_DEFAULT_COLOR, DOLX_ICON_XML } from './dolxIconXml';
  * app's own vocabulary.
  *
  * Where the design supplied an icon, that is what renders. The set covers 21
- * of the names below; the rest fall back to Ionicons, which is why the map
- * stays - removing it would leave holes in the UI rather than a near-match.
+ * of the names below; Lucide covers the remaining 33.
+ *
+ * Lucide replaced Ionicons for that fallback because it is stroke-based with
+ * rounded caps on a uniform grid - the same construction as the supplied set -
+ * whereas Ionicons read visibly thinner and rounder sitting next to them.
  */
 
 const GLYPHS = {
   // ── Navigation & chrome ──
-  back: 'arrow-back',
-  forward: 'arrow-forward',
-  close: 'close',
-  chevronRight: 'chevron-forward',
-  chevronDown: 'chevron-down',
-  search: 'search',
-  bell: 'notifications-outline',
-  filter: 'options-outline',
+  back: ArrowLeft,
+  forward: ArrowRight,
+  close: X,
+  chevronRight: ChevronRight,
+  chevronDown: ChevronDown,
+  search: Search,
+  bell: Bell,
+  filter: SlidersHorizontal,
 
-  // ── Supplied by the design set; Ionicons here is only the fallback ──
-  home: 'home-outline',
-  category: 'grid-outline',
-  edit: 'create-outline',
-  logout: 'log-out-outline',
-  help: 'help-circle-outline',
-  personAlt: 'person-circle-outline',
+  // ── Also supplied by the design set; these entries are the fallback only ──
+  home: House,
+  category: LayoutGrid,
+  edit: SquarePen,
+  logout: LogOut,
+  help: CircleHelp,
+  personAlt: CircleUser,
 
   // ── Entities ──
-  calendar: 'calendar-outline',
-  clock: 'time-outline',
-  location: 'location-outline',
-  tag: 'pricetag-outline',
-  briefcase: 'briefcase-outline',
-  document: 'document-text-outline',
-  people: 'people-outline',
-  person: 'person-outline',
-  building: 'business-outline',
+  calendar: Calendar,
+  clock: Clock,
+  location: MapPin,
+  tag: Tag,
+  briefcase: Briefcase,
+  document: FileText,
+  people: Users,
+  person: User,
+  building: Building2,
 
   // ── Actions & state ──
-  heart: 'heart',
-  heartOutline: 'heart-outline',
-  star: 'star',
-  starOutline: 'star-outline',
-  check: 'checkmark-circle',
-  warning: 'warning-outline',
-  hourglass: 'hourglass-outline',
-  lock: 'lock-closed-outline',
-  sparkle: 'sparkles-outline',
-  scale: 'git-compare-outline',
-  megaphone: 'megaphone-outline',
+  heart: Heart,
+  heartOutline: Heart,
+  star: Star,
+  starOutline: Star,
+  check: CircleCheck,
+  warning: TriangleAlert,
+  hourglass: Hourglass,
+  lock: Lock,
+  sparkle: Sparkles,
+  scale: Scale,
+  megaphone: Megaphone,
 
   // ── Money ──
-  wallet: 'wallet-outline',
-  cash: 'cash-outline',
-  arrowIn: 'arrow-down',
-  arrowOut: 'arrow-up',
+  wallet: Wallet,
+  cash: Banknote,
+  arrowIn: ArrowDown,
+  arrowOut: ArrowUp,
 
   // ── Auth form fields ──
-  mail: 'mail-outline',
-  phone: 'phone-portrait-outline',
-  key: 'key-outline',
+  mail: Mail,
+  phone: Phone,
+  key: Key,
 
   // ── Job roles (category tiles) ──
-  roleHelper: 'hand-left-outline',
-  roleSetup: 'construct-outline',
-  roleDecoration: 'color-palette-outline',
-  roleCatering: 'restaurant-outline',
-  roleCleaning: 'sparkles-outline',
-  roleHostess: 'rose-outline',
-  rolePhoto: 'camera-outline',
-  roleVideo: 'videocam-outline',
-  rolePromoter: 'megaphone-outline',
-  roleRegistration: 'clipboard-outline',
-  roleHost: 'mic-outline',
-  roleSecurity: 'shield-checkmark-outline',
-  roleCrowd: 'people-circle-outline',
+  roleHelper: HandHelping,
+  roleSetup: Wrench,
+  roleDecoration: PartyPopper,
+  roleCatering: UtensilsCrossed,
+  roleCleaning: Brush,
+  roleHostess: ConciergeBell,
+  rolePhoto: Camera,
+  roleVideo: Video,
+  rolePromoter: Megaphone,
+  roleRegistration: ClipboardList,
+  roleHost: Mic,
+  roleSecurity: ShieldCheck,
+  roleCrowd: UsersRound,
 } as const;
 
 export type IconName = keyof typeof GLYPHS;
+
+/**
+ * Lucide draws on a 24px grid at 2px; the design's icons sit on 20px at ~1.5.
+ * Scaling that ratio lands at 1.8, which matches their weight optically rather
+ * than arithmetically - a thinner line reads lighter at small sizes.
+ */
+const LUCIDE_STROKE = 1.8;
+
+/**
+ * Names the design draws filled rather than outlined.
+ *
+ * Deliberately excludes `check`: it maps to a circled tick, and filling that
+ * paints the disc solid so the tick disappears into it.
+ */
+const FILLED = new Set<IconName>(['heart', 'star']);
 
 interface IconProps {
   name: IconName;
@@ -116,14 +186,24 @@ export function Icon({ name, size = 18, color, style }: IconProps) {
     );
   }
 
+  // Lucide covers the names the design set doesn't. It is stroke-based with
+  // rounded caps on a uniform grid, which sits far closer to the supplied icons
+  // than Ionicons did - those read visibly thinner and rounder beside them.
+  const Glyph = GLYPHS[name];
+
   return (
-    <Ionicons
-      name={GLYPHS[name]}
-      size={size}
-      color={color ?? colors.text}
-      style={style}
-      accessible={false}
-    />
+    <View style={style as StyleProp<ViewStyle>} accessible={false} pointerEvents="none">
+      <Glyph
+        size={size}
+        color={color ?? colors.text}
+        // Matches the weight of the supplied icons once scaled off Lucide's
+        // 24px grid onto the 20px one the design uses.
+        strokeWidth={LUCIDE_STROKE}
+        // Filled variants in the design set: outline-only would lose the
+        // distinction between a saved and unsaved favourite.
+        fill={FILLED.has(name) ? (color ?? colors.text) : 'none'}
+      />
+    </View>
   );
 }
 

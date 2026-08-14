@@ -41,4 +41,7 @@ example
 
 # generated native folders
 /ios
-/android
+
+# Android local files
+android/local.properties
+android/app/debug.keystore
